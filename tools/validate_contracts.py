@@ -34,13 +34,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from uri_config import load_config
 
-# Examples are matched to a schema by file-name prefix or exact stem.
+# Examples are matched to a schema by directory name, exact stem, or file-name prefix.
+DIRECTORY_TARGETS = {
+    "language-profiles": "schemas/common/language-profile.schema.json",
+    "edition-fingerprints": "schemas/common/edition-fingerprint.schema.json",
+    "locators": "schemas/common/locator.schema.json",
+}
+
 EXAMPLE_TARGETS = {
     "graph-pack-manifest": "schemas/graph/graph-pack-manifest.schema.json",
     "locator": "schemas/common/locator.schema.json",
     "locator-start": "schemas/common/locator.schema.json",
     "locator-mid-chapter": "schemas/common/locator.schema.json",
     "locator-chapter-end": "schemas/common/locator.schema.json",
+    "language-profile": "schemas/common/language-profile.schema.json",
+    "edition-fingerprint": "schemas/common/edition-fingerprint.schema.json",
 }
 
 
@@ -93,7 +101,9 @@ def check_examples(schemas: dict[str, dict], registry: Registry) -> list[str]:
     example_files = sorted(p for p in ROOT.glob("examples/**/*.json") if p.is_file())
     for path in example_files:
         rel = path.relative_to(ROOT)
-        target = EXAMPLE_TARGETS.get(path.stem)
+        target = DIRECTORY_TARGETS.get(path.parent.name)
+        if target is None:
+            target = EXAMPLE_TARGETS.get(path.stem)
         if target is None:
             for prefix, schema_target in EXAMPLE_TARGETS.items():
                 if path.stem.startswith(f"{prefix}-") or path.stem == prefix:

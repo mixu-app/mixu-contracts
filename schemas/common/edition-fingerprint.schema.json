@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/common/edition-fingerprint.schema.json",
+  "title": "EditionFingerprint",
+  "description": "Edition fingerprint identifying an exact, reproducible document edition and normalization configuration. Normative rule: an edition fingerprint missing any version field (profile_version, normalization_version) is strictly invalid because text offsets and locators depend directly on the normalizer and profile semantics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "content_hash",
+    "language",
+    "profile_version",
+    "normalization_version",
+    "spine_order"
+  ],
+  "properties": {
+    "doc_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable publication or work identifier (e.g. URN or UUID)."
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$",
+      "description": "SHA-256 cryptographic hex digest of the raw source publication content or package document."
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "BCP-47 language tag (e.g. 'zh-Hans', 'en', 'ja') or 'generic' for the fallback profile."
+    },
+    "profile_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Semantic version string of the language profile used during extraction and normalization. Normative rule: required; missing version invalidates the fingerprint."
+    },
+    "normalization_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Semantic version string of the text normalization engine. Normative rule: required; missing version invalidates the fingerprint."
+    },
+    "format": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source package format (e.g. 'epub', 'txt', 'pdf')."
+    },
+    "spine_order": {
+      "type": "array",
+      "description": "Ordered sequence of spine item paths (hrefs) or item IDs defining the reading order.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/common/language-profile.schema.json",
+  "title": "LanguageProfile",
+  "description": "Data-driven, parameterized language profile specification for text normalization, chapter boundary detection, typography, naming conventions, and inline annotations across multilingual publications without code-level language branching.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "script_family",
+    "chapter_rules",
+    "quote_pairs",
+    "honorifics",
+    "alias_markers",
+    "ruby_policy"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "BCP-47 language tag identifier (e.g. 'zh-Hans', 'en', 'ja') or 'generic' for the fallback profile."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable display name for this language profile."
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed explanation of this profile's configuration and target language."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "Semantic version string of the language profile (e.g. '1.0.0'). Bumps whenever extraction, segmentation, or detection behavior changes."
+    },
+    "script_family": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Script or writing system family classification (e.g. 'han', 'latin', 'cjk_mixed', 'kana', 'generic')."
+    },
+    "chapter_rules": {
+      "type": "array",
+      "description": "Ordered list of chapter boundary detection rules.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "pattern",
+          "capture_group"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique identifier for the chapter detection rule pattern."
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Regular expression pattern used to detect chapter boundaries."
+          },
+          "capture_group": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Zero-based regex capture group index containing the chapter heading or title."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of what this rule matches."
+          },
+          "priority": {
+            "type": "integer",
+            "description": "Evaluation priority order when multiple patterns match."
+          }
+        }
+      }
+    },
+    "quote_pairs": {
+      "type": "array",
+      "description": "List of paired opening and closing quotation mark delimiters.",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "A pair consisting of exactly one opening delimiter and one closing delimiter."
+      }
+    },
+    "honorifics": {
+      "type": "array",
+      "description": "Prefixes, suffixes, or titles associated with character names.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "alias_markers": {
+      "type": "array",
+      "description": "Keywords or patterns indicating alias, nickname, or pseudonym relations.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ruby_policy": {
+      "description": "Policy for handling inline phonetic annotations (ruby text) in source documents.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "strip",
+            "parenthesize",
+            "keep_base"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "strategy"
+          ],
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "enum": [
+                "strip",
+                "parenthesize",
+                "keep_base"
+              ]
+            },
+            "parentheses": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Opening and closing parentheses delimiters when strategy is 'parenthesize'."
+            }
+          }
+        }
+      ]
+    },
+    "name_conventions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "order": {
+          "type": "string",
+          "enum": [
+            "family_first",
+            "given_first",
+            "unspecified"
+          ],
+          "description": "Typical naming order (e.g. 'family_first' in Chinese/Japanese or 'given_first' in English)."
+        },
+        "romanization": {
+          "type": "string",
+          "enum": [
+            "none",
+            "pinyin",
+            "kana",
+            "other"
+          ],
+          "description": "Standard romanization system if applicable."
+        }
+      }
+    }
+  }
+}

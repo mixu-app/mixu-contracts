@@ -1,0 +1,13 @@
+{
+  "doc_id": "urn:mixu:doc:rashomon",
+  "content_hash": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+  "language": "ja",
+  "profile_version": "1.0.0",
+  "normalization_version": "1.0.0",
+  "format": "epub",
+  "spine_order": [
+    "text/cover.xhtml",
+    "text/section01.xhtml",
+    "text/section02.xhtml"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "doc_id": "urn:mixu:doc:unknown-work",
+  "content_hash": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+  "language": "generic",
+  "profile_version": "1.0.0",
+  "normalization_version": "1.0.0",
+  "format": "txt",
+  "spine_order": [
+    "text/item01.txt",
+    "text/item02.txt"
+  ]
+}

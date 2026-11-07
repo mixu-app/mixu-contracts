@@ -1,0 +1,14 @@
+{
+  "doc_id": "urn:mixu:doc:study-in-scarlet",
+  "content_hash": "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
+  "language": "en",
+  "profile_version": "1.0.0",
+  "normalization_version": "1.0.0",
+  "format": "epub",
+  "spine_order": [
+    "text/cover.xhtml",
+    "text/part1_chapter1.xhtml",
+    "text/part1_chapter2.xhtml",
+    "text/part1_chapter3.xhtml"
+  ]
+}
