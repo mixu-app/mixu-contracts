@@ -1,0 +1,54 @@
+{
+  "id": "ja",
+  "name": "Japanese Profile",
+  "description": "Language profile for Japanese literature, light novels, and mystery works.",
+  "version": "1.0.0",
+  "script_family": "cjk_mixed",
+  "chapter_rules": [
+    {
+      "id": "ja-standard-chapter",
+      "pattern": "^\\s*第[0-9一二三四五六七八九十百千万]+[話章節編部幕]\\s*.*$",
+      "capture_group": 0,
+      "description": "Matches numbered Japanese chapters, episodes, or acts",
+      "priority": 10
+    },
+    {
+      "id": "ja-special-chapter",
+      "pattern": "^\\s*(序章|プロローグ|エピローグ|終章|幕間|後書き|まえがき)\\s*.*$",
+      "capture_group": 0,
+      "description": "Matches Japanese prologue, epilogue, interlude, and front/back matter headings",
+      "priority": 20
+    }
+  ],
+  "quote_pairs": [
+    ["「", "」"],
+    ["『", "』"],
+    ["（", "）"]
+  ],
+  "honorifics": [
+    "さん",
+    "様",
+    "先生",
+    "君",
+    "ちゃん",
+    "氏",
+    "警部",
+    "警視",
+    "教授",
+    "殿",
+    "博士"
+  ],
+  "alias_markers": [
+    "別名",
+    "本名",
+    "通称",
+    "またの名を",
+    "旧名",
+    "呼称"
+  ],
+  "ruby_policy": "strip",
+  "name_conventions": {
+    "order": "family_first",
+    "romanization": "kana"
+  }
+}

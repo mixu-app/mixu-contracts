@@ -1,0 +1,18 @@
+{
+  "id": "generic",
+  "name": "Universal Fallback Profile",
+  "description": "Fallback language profile using universal punctuation and conservative boundary rules when book language is unrecognized.",
+  "version": "1.0.0",
+  "script_family": "generic",
+  "chapter_rules": [],
+  "quote_pairs": [
+    ["\"", "\""],
+    ["'", "'"],
+    ["“", "”"],
+    ["‘", "’"],
+    ["「", "」"]
+  ],
+  "honorifics": [],
+  "alias_markers": [],
+  "ruby_policy": "strip"
+}

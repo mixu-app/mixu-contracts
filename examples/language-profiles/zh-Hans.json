@@ -1,0 +1,58 @@
+{
+  "id": "zh-Hans",
+  "name": "Simplified Chinese Profile",
+  "description": "Language profile for Simplified Chinese literary and narrative texts.",
+  "version": "1.0.0",
+  "script_family": "han",
+  "chapter_rules": [
+    {
+      "id": "zh-standard-chapter",
+      "pattern": "^\\s*第[0-9一二三四五六七八九十百千万]+[章回节卷部集篇]\\s*.*$",
+      "capture_group": 0,
+      "description": "Matches standard numbered Chinese chapter headings such as 第1章 or 第二回",
+      "priority": 10
+    },
+    {
+      "id": "zh-special-chapter",
+      "pattern": "^\\s*(序章|前言|引子|序言|楔子|尾声|后记|附录|终章)\\s*.*$",
+      "capture_group": 0,
+      "description": "Matches introductory and concluding book section titles",
+      "priority": 20
+    }
+  ],
+  "quote_pairs": [
+    ["“", "”"],
+    ["‘", "’"],
+    ["「", "」"],
+    ["『", "』"]
+  ],
+  "honorifics": [
+    "先生",
+    "女士",
+    "小姐",
+    "老弟",
+    "兄",
+    "大夫",
+    "教授",
+    "警官",
+    "探长",
+    "侦探",
+    "阁下"
+  ],
+  "alias_markers": [
+    "又名",
+    "原名",
+    "绰号",
+    "化名",
+    "人称",
+    "又称",
+    "自称",
+    "字",
+    "号"
+  ],
+  "ruby_policy": "strip",
+  "name_conventions": {
+    "order": "family_first",
+    "romanization": "pinyin"
+  }
+}

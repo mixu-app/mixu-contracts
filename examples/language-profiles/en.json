@@ -1,0 +1,56 @@
+{
+  "id": "en",
+  "name": "English Profile",
+  "description": "Language profile for English narrative works.",
+  "version": "1.0.0",
+  "script_family": "latin",
+  "chapter_rules": [
+    {
+      "id": "en-standard-chapter",
+      "pattern": "^\\s*(?:Chapter|Book|Part|Section)\\s+[0-9IVXLCDM]+\\b.*$",
+      "capture_group": 0,
+      "description": "Matches numbered English chapter headings using Arabic or Roman numerals",
+      "priority": 10
+    },
+    {
+      "id": "en-special-chapter",
+      "pattern": "^\\s*(?:Prologue|Epilogue|Introduction|Preface|Conclusion)\\b.*$",
+      "capture_group": 0,
+      "description": "Matches standard prologue, epilogue, preface, and concluding headings",
+      "priority": 20
+    }
+  ],
+  "quote_pairs": [
+    ["“", "”"],
+    ["\"", "\""],
+    ["‘", "’"],
+    ["'", "'"]
+  ],
+  "honorifics": [
+    "Mr.",
+    "Mrs.",
+    "Miss",
+    "Ms.",
+    "Dr.",
+    "Prof.",
+    "Inspector",
+    "Detective",
+    "Lord",
+    "Lady",
+    "Sir"
+  ],
+  "alias_markers": [
+    "aka",
+    "a.k.a.",
+    "also known as",
+    "alias",
+    "nickname",
+    "known as",
+    "called"
+  ],
+  "ruby_policy": "strip",
+  "name_conventions": {
+    "order": "given_first",
+    "romanization": "none"
+  }
+}

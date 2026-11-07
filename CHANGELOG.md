@@ -7,6 +7,19 @@ are independent of the repository version.
 
 ### Added
 
+- Language profile schema (`schemas/common/language-profile.schema.json`) for
+  data-driven, parameterized language configurations (chapter detection regexes,
+  quote delimiters, honorifics, alias markers, ruby policies, naming conventions)
+  without code-level language branching.
+- Edition fingerprint schema (`schemas/common/edition-fingerprint.schema.json`)
+  enforcing exact edition and normalizer binding; fingerprints missing either
+  `profile_version` or `normalization_version` are strictly invalid.
+- Language profile examples (`examples/language-profiles/`) for `zh-Hans`, `en`,
+  `ja`, and universal `generic` fallback.
+- Edition fingerprint examples (`examples/edition-fingerprints/`) with SHA-256
+  checksums, spine orders, and semver bindings.
+- Test suite (`tests/test_language_profile_schemas.py`) covering profile/fingerprint
+  schema invariants, negative test cases, and validator gate integration.
 - Shared reading locator schema (`schemas/common/locator.schema.json`) with
   edition fingerprint, spine index/href, character offsets, relative progression,
   EPUB CFI, and text quote context; enforces the normative rule against rendered
