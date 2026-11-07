@@ -43,6 +43,15 @@ DIRECTORY_TARGETS = {
 
 EXAMPLE_TARGETS = {
     "graph-pack-manifest": "schemas/graph/graph-pack-manifest.schema.json",
+    "assertion-transition": "schemas/graph/assertion-transition.schema.json",
+    "assertion": "schemas/graph/assertion.schema.json",
+    "entity-name": "schemas/graph/entity-name.schema.json",
+    "entity": "schemas/graph/entity.schema.json",
+    "event": "schemas/graph/event.schema.json",
+    "evidence-anchor": "schemas/graph/evidence-anchor.schema.json",
+    "identity-link": "schemas/graph/identity-link.schema.json",
+    "reveal-anchor": "schemas/graph/reveal-anchor.schema.json",
+    "user-overlay": "schemas/graph/user-overlay.schema.json",
     "locator": "schemas/common/locator.schema.json",
     "locator-start": "schemas/common/locator.schema.json",
     "locator-mid-chapter": "schemas/common/locator.schema.json",
@@ -105,7 +114,9 @@ def check_examples(schemas: dict[str, dict], registry: Registry) -> list[str]:
         if target is None:
             target = EXAMPLE_TARGETS.get(path.stem)
         if target is None:
-            for prefix, schema_target in EXAMPLE_TARGETS.items():
+            for prefix, schema_target in sorted(
+                EXAMPLE_TARGETS.items(), key=lambda kv: len(kv[0]), reverse=True
+            ):
                 if path.stem.startswith(f"{prefix}-") or path.stem == prefix:
                     target = schema_target
                     break

@@ -1,0 +1,14 @@
+{
+  "overlay_id": "ov_suspect_color",
+  "object_type": "ENTITY",
+  "object_id": "e_ishida",
+  "device_id": "dev_boox_palma_01",
+  "created_at": "2026-11-08T07:45:00Z",
+  "created_at_reveal": 2,
+  "kind": "COLOR",
+  "payload": {
+    "color_token": "suspect_highlight_amber",
+    "pinned": true
+  },
+  "visibility": "FROM_CREATION"
+}

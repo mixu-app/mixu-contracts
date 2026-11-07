@@ -1,0 +1,16 @@
+{
+  "event_id": "ev_midnight_departure",
+  "event_type": "DEPARTURE",
+  "first_reveal": 4,
+  "participant_ids": [
+    "e_grey"
+  ],
+  "story_time": {
+    "kind": "RELATIVE",
+    "expression": "around midnight during the heavy storm",
+    "certainty": "PROBABLE"
+  },
+  "evidence_anchor_ids": [
+    "ev_porter_statement"
+  ]
+}

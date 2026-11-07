@@ -1,0 +1,10 @@
+{
+  "link_id": "link_grey_is_ishida",
+  "entity_ids": [
+    "e_ishida",
+    "e_grey"
+  ],
+  "kind": "CONFIRMED",
+  "first_reveal": 5,
+  "evidence_anchor_id": "ev_coat_recovered"
+}

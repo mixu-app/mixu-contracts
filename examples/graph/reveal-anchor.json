@@ -1,0 +1,16 @@
+{
+  "anchor_id": "anc_ch01_p003",
+  "edition_id": "ed_locked_stair_2026_en_epub",
+  "ordinal": 3,
+  "reveal_kind": "paragraph",
+  "locator": {
+    "href": "text/chapter01.xhtml",
+    "type": "application/xhtml+xml",
+    "title": "Chapter 1: The Arrival",
+    "progression": 0.125,
+    "total_progression": 0.042,
+    "text_before": "The clock struck eight as",
+    "text_after": "stepped across the rain-soaked sill."
+  },
+  "text_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

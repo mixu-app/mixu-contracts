@@ -1,0 +1,8 @@
+{
+  "name_id": "n_ishida",
+  "entity_id": "e_ishida",
+  "display_text": "Mr. Ishida",
+  "first_reveal": 1,
+  "name_kind": "CANONICAL",
+  "evidence_anchor_id": "ev_register_entry"
+}

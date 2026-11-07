@@ -7,6 +7,12 @@ are independent of the repository version.
 
 ### Added
 
+- Frozen graph schema v1 with realistic examples in `examples/graph/` (entity,
+  entity-name, reveal-anchor, evidence-anchor, event, assertion,
+  assertion-transition, identity-link, user-overlay), field optionality
+  justification, compatibility semantics, version negotiation rules, and
+  mutation tests (`tests/test_graph_schemas.py`).
+
 - Language profile schema (`schemas/common/language-profile.schema.json`) for
   data-driven, parameterized language configurations (chapter detection regexes,
   quote delimiters, honorifics, alias markers, ruby policies, naming conventions)

@@ -1,0 +1,15 @@
+{
+  "evidence_id": "ev_register_entry",
+  "reveal_ordinal": 1,
+  "locator": {
+    "href": "text/chapter01.xhtml",
+    "type": "application/xhtml+xml",
+    "title": "Chapter 1: The Arrival",
+    "progression": 0.05,
+    "total_progression": 0.015,
+    "text_before": "registered under the name",
+    "text_after": "in black ink."
+  },
+  "source_hash": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "excerpt_policy": "LOCATOR_ONLY"
+}
