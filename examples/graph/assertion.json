@@ -1,0 +1,16 @@
+{
+  "assertion_id": "a_grey_on_stair",
+  "subject_id": "e_grey",
+  "predicate": "was_present_at",
+  "object_ref": {
+    "entity_id": "loc_locked_stair"
+  },
+  "attribution": {
+    "kind": "WITNESS_CLAIM",
+    "speaker_id": "e_keeper"
+  },
+  "first_reveal": 2,
+  "evidence_anchor_id": "ev_keeper_testimony",
+  "epistemic_status": "CLAIMED",
+  "extraction_confidence": 0.94
+}

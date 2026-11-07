@@ -1,0 +1,8 @@
+{
+  "transition_id": "tr_grey_on_stair_contradicted",
+  "assertion_id": "a_grey_on_stair",
+  "reveal_ordinal": 4,
+  "status": "CONTRADICTED",
+  "evidence_anchor_id": "ev_alibi_confirmed",
+  "reason": "Keeper admitted confusion after broken lantern was examined."
+}
