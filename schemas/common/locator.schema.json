@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/common/locator.schema.json",
+  "title": "Locator",
+  "description": "Normalized, stable source reading locator within an edition of a publication. Normative rule: a locator never carries a rendered page number (page numbers vary dynamically with screen size, font size, margins, and device DPI). Enforces exact edition binding via edition_fingerprint, spine coordinates, character offsets, progression percentages, EPUB CFI, and text quotes for resilient relocation.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "doc_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable publication or work identifier (e.g., URN, UUID, or catalog ID)."
+    },
+    "edition_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Edition-binding fingerprint (e.g. SHA-256 hash of normalized text or OPF package). Used to detect edition mismatches; locators are edition-bound and must not be used across mismatched editions."
+    },
+    "spine_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based index of the spine item in the publication reading order."
+    },
+    "spine_item_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Manifest identifier of the spine item from the EPUB package document."
+    },
+    "spine_href": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Resource path (href) of the spine item relative to the publication root."
+    },
+    "char_offset": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Zero-based character offset within the spine item or normalized chapter text."
+    },
+    "char_range": {
+      "type": "object",
+      "description": "Character offset range within the spine item or normalized chapter text.",
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based start character offset (inclusive)."
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based end character offset (exclusive)."
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ]
+    },
+    "progression": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Relative progression within the spine item (0.0 to 1.0 inclusive)."
+    },
+    "total_progression": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Relative progression within the entire publication (0.0 to 1.0 inclusive)."
+    },
+    "cfi": {
+      "type": "string",
+      "minLength": 1,
+      "description": "EPUB Canonical Fragment Identifier (CFI) for fine-grained DOM-level anchoring."
+    },
+    "text_quote": {
+      "type": "object",
+      "description": "Textual context around the target location for resilient re-anchoring across reflows or minor text shifts.",
+      "additionalProperties": false,
+      "properties": {
+        "exact": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The exact target text snippet."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Preceding text snippet for disambiguation."
+        },
+        "suffix": {
+          "type": "string",
+          "description": "Succeeding text snippet for disambiguation."
+        }
+      },
+      "required": [
+        "exact"
+      ]
+    }
+  },
+  "required": [
+    "doc_id",
+    "edition_fingerprint",
+    "progression"
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "spine_index"
+      ]
+    },
+    {
+      "required": [
+        "spine_item_id"
+      ]
+    },
+    {
+      "required": [
+        "spine_href"
+      ]
+    }
+  ]
+}

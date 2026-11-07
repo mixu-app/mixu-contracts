@@ -62,6 +62,13 @@ def test_compute_schema_id() -> None:
     new_id = compute_schema_id(p, old_id, "https://schemas.new.app")
     assert new_id == "https://schemas.new.app/graph/v1/assertion.schema.json"
 
+    p_common = Path("/dummy/schemas/common/locator.schema.json")
+    old_common_id = "https://schemas.old.app/common/locator.schema.json"
+    new_common_id = compute_schema_id(
+        p_common, old_common_id, "https://schemas.new.app"
+    )
+    assert new_common_id == "https://schemas.new.app/common/locator.schema.json"
+
 
 def test_rewrite_refs() -> None:
     doc = {
@@ -119,7 +126,8 @@ def test_sync_uris_end_to_end(isolated_contracts_tree: Path) -> None:
     initial_base, _, _ = config_mod.load_config()
     schemas, problems = load_schemas(initial_base)
     assert not problems
-    assert len(schemas) == 11
+    num_schemas = len(list(tmp_path.glob("schemas/**/*.json")))
+    assert len(schemas) == num_schemas
 
     # 2. Change base URI in config
     new_base = "https://schemas.staging.mixu.io"
@@ -130,7 +138,7 @@ def test_sync_uris_end_to_end(isolated_contracts_tree: Path) -> None:
 
     # Before sync, validator fails because schema $id doesn't start with new_base
     schemas, problems = load_schemas(new_base)
-    assert len(problems) == 11
+    assert len(problems) == num_schemas
     assert "does not start with configured base URI" in problems[0]
 
     # 4. Run sync_uris

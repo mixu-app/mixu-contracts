@@ -11,6 +11,7 @@
 config/           # 权威基础 URI 配置（schema $id 与 OpenAPI servers）
 schemas/graph/    # 叙事图 / 图包格式，schema 版本 1（draft）
 schemas/api/      # 错误信封与错误码注册表
+schemas/common/   # 跨领域共享基础契约（如 locator 定位符）
 api/openapi.yaml  # /v1 草案骨架（proposal，不是已发布契约）
 examples/         # 示例载荷，必须能通过 schema 校验
 tools/            # 无网络即可运行的校验与同步脚本

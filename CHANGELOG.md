@@ -7,6 +7,14 @@ are independent of the repository version.
 
 ### Added
 
+- Shared reading locator schema (`schemas/common/locator.schema.json`) with
+  edition fingerprint, spine index/href, character offsets, relative progression,
+  EPUB CFI, and text quote context; enforces the normative rule against rendered
+  page numbers and forbids extraneous properties.
+- Realistic locator examples (`examples/locators/`) covering start, mid-chapter,
+  and chapter-end positions.
+- Locator test suite (`tests/test_locator_schema.py`) and validator mapping in
+  `tools/validate_contracts.py`.
 - Single-source schema base URI config (`config/schema-base-uri.json`) and
   generator (`tools/sync_schema_uris.py`, `just sync-uris`) to synchronize
   schema `$id`s, cross-schema `$ref` prefixes, and OpenAPI `servers`.
