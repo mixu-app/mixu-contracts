@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/entity.schema.json",
+  "title": "Entity",
+  "description": "A person, persona, location, organization or object. 'first_reveal' is the earliest reveal ordinal at which the entity may be shown at all.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "PERSON",
+        "PERSONA",
+        "LOCATION",
+        "ORGANIZATION",
+        "OBJECT"
+      ]
+    },
+    "first_reveal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "canonical_name_id": {
+      "type": "string",
+      "description": "Name used for display; must itself be revealed at or before the view ordinal."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Extraction-side remark. Never shown to readers."
+    }
+  },
+  "required": [
+    "entity_id",
+    "entity_type",
+    "first_reveal"
+  ]
+}

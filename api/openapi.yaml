@@ -1,0 +1,321 @@
+openapi: 3.1.0
+info:
+  title: Mixu API (proposal)
+  version: 0.1.0-draft
+  description: |
+    Draft `/v1` HTTP surface for the hosted Mixu service. This document is a
+    proposal, not a published contract: routes, payloads and error codes may
+    change until the connected-beta milestone (M3).
+
+    Rules that already hold:
+
+    - Authenticated endpoints accept a Cognito JWT; the server maps the external
+      identity to the internal immutable user UUID. A client never chooses an
+      owner id in a request.
+    - Every mutating request carries an idempotency key or a stable
+      client-generated mutation id.
+    - Book files move through short-lived presigned S3 URLs, never through this
+      API body.
+    - Error bodies follow `error.schema.json`; clients branch on `code`.
+    - No response returns credentials, full book content, or graph data beyond
+      the authorized reveal horizon.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: https://api.example.invalid/v1
+    description: Placeholder host. Production hostnames are not part of this proposal.
+security:
+  - bearerAuth: []
+tags:
+  - name: health
+  - name: account
+  - name: sync
+  - name: graphs
+x-mixu-status: proposal
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Service readiness
+      description: Redacted readiness probe. Returns no version detail, no secrets, no dependency credentials.
+      security: []
+      tags: [health]
+      responses:
+        "200":
+          description: Service is able to serve authenticated traffic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /me:
+    get:
+      operationId: getMe
+      summary: Internal account profile
+      description: Returns the Mixu-internal profile for the authenticated identity (display name, quota summary). Never returns provider tokens.
+      tags: [account]
+      responses:
+        "200":
+          description: Profile of the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    patch:
+      operationId: patchMe
+      summary: Update display name
+      description: Only display attributes are mutable here; the immutable user id and username are not client-writable.
+      tags: [account]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                display_name:
+                  type: string
+                  maxLength: 64
+              required: [display_name]
+      responses:
+        "200":
+          description: Updated profile.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /sync/push:
+    post:
+      operationId: pushSyncMutations
+      summary: Apply idempotent local mutations
+      description: |
+        Applies queued local mutations (progress, bookmarks, notes, overlays).
+        The server deduplicates by `mutation_id`; a concurrent edit returns a
+        conflict or a conflict copy, never a silent overwrite. Responses carry a
+        `next_cursor` for the follow-up pull.
+      tags: [sync]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncPushRequest"
+      responses:
+        "200":
+          description: Per-mutation outcomes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPushResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /sync/pull:
+    get:
+      operationId: pullSyncChanges
+      summary: Retrieve authorized changes
+      description: Returns mutations applied since the cursor for the authenticated account only.
+      tags: [sync]
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Changed objects and the next cursor.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncPullResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /graphs/{pack_id}/download:
+    get:
+      operationId: getGraphPackDownload
+      summary: Authorized graph pack URL and manifest
+      description: |
+        Returns a short-lived download URL plus the pack manifest. The caller must
+        already own the book edition or qualify for the rights-cleared public
+        catalog; a client-supplied edition claim is verified server-side.
+      tags: [graphs]
+      parameters:
+        - name: pack_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Download intent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphPackDownload"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito access token. The app client is public; no client secret is ever embedded.
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+      required: [status]
+    AccountProfile:
+      type: object
+      additionalProperties: false
+      properties:
+        user_id:
+          type: string
+          description: Mixu-internal immutable UUID, not a Cognito subject.
+        username:
+          type: string
+        display_name:
+          type: string
+        email_verified:
+          type: boolean
+        storage_quota_bytes:
+          type: integer
+          minimum: 0
+      required: [user_id, username, email_verified]
+    SyncMutation:
+      type: object
+      additionalProperties: false
+      properties:
+        mutation_id:
+          type: string
+        object_type:
+          type: string
+          enum: [progress, bookmark, note, overlay]
+        object_id:
+          type: string
+        base_revision:
+          type: integer
+          minimum: 0
+        operation:
+          type: string
+          enum: [create, edit, delete]
+        payload:
+          type: object
+          additionalProperties: true
+      required: [mutation_id, object_type, object_id, operation, payload]
+    SyncPushRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        device_id:
+          type: string
+        mutations:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/SyncMutation"
+      required: [device_id, mutations]
+    SyncMutationResult:
+      type: object
+      additionalProperties: false
+      properties:
+        mutation_id:
+          type: string
+        status:
+          type: string
+          enum: [applied, duplicate, conflict, rejected]
+        revision:
+          type: integer
+          minimum: 0
+        conflict_id:
+          type: string
+      required: [mutation_id, status]
+    SyncPushResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncMutationResult"
+        next_cursor:
+          type: string
+      required: [results, next_cursor]
+    SyncPullResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        changes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        next_cursor:
+          type: string
+      required: [changes, next_cursor]
+    GraphPackDownload:
+      type: object
+      additionalProperties: false
+      properties:
+        pack_id:
+          type: string
+        download_url:
+          type: string
+          description: Short-lived presigned URL. Treat as a bearer capability; do not log or share it.
+        expires_at:
+          type: string
+          format: date-time
+        manifest:
+          type: object
+          additionalProperties: true
+          description: Must validate against the graph pack manifest schema (schemas/graph/graph-pack-manifest.schema.json).
+      required: [pack_id, download_url, expires_at, manifest]
+    Error:
+      $ref: "./error.schema.json"
+  responses:
+    Unauthorized:
+      description: Missing, expired or invalid token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Authenticated but not authorized for this object.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Object does not exist or is not visible to this account.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Concurrent edit or duplicate mutation that cannot be applied as-is.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unavailable:
+      description: Dependency unavailable; the client must keep local reading intact.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

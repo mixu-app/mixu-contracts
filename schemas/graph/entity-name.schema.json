@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/entity-name.schema.json",
+  "title": "EntityName",
+  "description": "A display name or alias with its own reveal boundary. A late alias must not make an earlier projection name the entity.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "name_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "first_reveal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "name_kind": {
+      "type": "string",
+      "enum": [
+        "CANONICAL",
+        "ALIAS",
+        "HONORIFIC",
+        "PSEUDONYM",
+        "DESCRIPTION",
+        "TITLE"
+      ]
+    },
+    "evidence_anchor_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "name_id",
+    "entity_id",
+    "display_text",
+    "first_reveal",
+    "name_kind"
+  ]
+}

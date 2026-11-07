@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/assertion-transition.schema.json",
+  "title": "AssertionTransition",
+  "description": "Append-only status change revealed later. Viewing an earlier ordinal must show the earlier status, so a transition never mutates its assertion row.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "transition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assertion_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reveal_ordinal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OBSERVED",
+        "CLAIMED",
+        "INFERRED",
+        "CORROBORATED",
+        "CONTRADICTED",
+        "RETRACTED",
+        "UNRESOLVED"
+      ]
+    },
+    "evidence_anchor_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "transition_id",
+    "assertion_id",
+    "reveal_ordinal",
+    "status"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/evidence-anchor.schema.json",
+  "title": "EvidenceAnchor",
+  "description": "Source location backing a claim. Quotation is bounded by policy: the default is locator-only, never a redistributable excerpt.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reveal_ordinal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "locator": {
+      "$ref": "reveal-anchor.schema.json#/$defs/locator"
+    },
+    "source_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "excerpt_policy": {
+      "type": "string",
+      "enum": [
+        "LOCATOR_ONLY",
+        "BOUNDED_QUOTE",
+        "PUBLIC_DOMAIN_QUOTE"
+      ]
+    },
+    "excerpt": {
+      "type": "string",
+      "maxLength": 600,
+      "description": "Present only when the policy permits it and the source is rights-cleared."
+    }
+  },
+  "required": [
+    "evidence_id",
+    "reveal_ordinal",
+    "locator",
+    "excerpt_policy"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "graph_schema_version": 1,
+  "work_id": "work_demo",
+  "edition_id": "edition_demo_zh_1",
+  "graph_version": "0.1.0",
+  "reveal_anchor_map_version": 1,
+  "checksum_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "package_format": "sqlite+zstd",
+  "publication_policy": "PRIVATE_ONLY",
+  "source_excerpt_policy": "LOCATOR_ONLY",
+  "created_at": "2026-11-07T00:00:00Z",
+  "provenance": {
+    "validator_version": "0.1.0"
+  },
+  "copyright_basis": "SYNTHETIC_ORIGINAL",
+  "counts": {
+    "entities": 0,
+    "assertions": 0,
+    "events": 0,
+    "evidence_anchors": 0
+  }
+}

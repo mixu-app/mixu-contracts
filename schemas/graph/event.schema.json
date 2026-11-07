@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/event.schema.json",
+  "title": "Event",
+  "description": "Something that happens in the story world. story_time is independent from reveal order: a late chapter may describe an early event.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "SCENE",
+        "DISCOVERY",
+        "TESTIMONY",
+        "DEATH",
+        "ARRIVAL",
+        "DEPARTURE",
+        "OTHER"
+      ]
+    },
+    "first_reveal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "participant_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "story_time": {
+      "$ref": "#/$defs/story_time"
+    },
+    "evidence_anchor_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "event_id",
+    "event_type",
+    "first_reveal"
+  ],
+  "$defs": {
+    "story_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Partial, uncertain or relative time. Never fabricate an exact timestamp.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "EXACT",
+            "INTERVAL",
+            "RELATIVE",
+            "UNKNOWN",
+            "DISPUTED"
+          ]
+        },
+        "earliest": {
+          "type": "string"
+        },
+        "latest": {
+          "type": "string"
+        },
+        "expression": {
+          "type": "string"
+        },
+        "certainty": {
+          "type": "string",
+          "enum": [
+            "CERTAIN",
+            "PROBABLE",
+            "UNCERTAIN"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    }
+  }
+}

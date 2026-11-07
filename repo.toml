@@ -1,0 +1,14 @@
+# mixu-contracts: workspace identity descriptor (mirrors workspace.toml).
+[repo]
+name = "mixu-contracts"
+kind = "contracts"
+lang = "json/yaml"
+role = "graph pack schemas, HTTP contracts, error envelope (single source of truth)"
+visibility = "public"
+owner = "mixu-core"
+docs = "mixu-docs"
+
+[contracts.provides]
+graph-pack-schema = "schemas/graph"      # schema version 1, reveal-scoped narrative graph
+api-contracts = "api/openapi.yaml"       # /v1 surface, proposal stage
+error-envelope = "api/error.schema.json" # error code registry shared by client and server

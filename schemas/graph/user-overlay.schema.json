@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/user-overlay.schema.json",
+  "title": "UserOverlay",
+  "description": "Private reader annotation referencing stable graph IDs. Overlays never modify the canonical pack and are exported independently.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "overlay_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "object_type": {
+      "type": "string",
+      "enum": [
+        "ENTITY",
+        "ASSERTION",
+        "EVENT",
+        "EDGE"
+      ]
+    },
+    "object_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_at_reveal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "COLOR",
+        "ALIAS",
+        "NOTE",
+        "HYPOTHESIS_EDGE",
+        "CORRECTION"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "ALWAYS",
+        "FROM_CREATION"
+      ],
+      "default": "FROM_CREATION",
+      "description": "FROM_CREATION hides the overlay during historical replay at an ordinal before created_at_reveal."
+    }
+  },
+  "required": [
+    "overlay_id",
+    "object_type",
+    "object_id",
+    "created_at",
+    "created_at_reveal",
+    "kind",
+    "payload"
+  ]
+}

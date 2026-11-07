@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/reveal-anchor.schema.json",
+  "title": "RevealAnchor",
+  "description": "Edition-specific location that orders disclosures. Ordinals are dense, monotonic and edition-bound; a locator from one edition must never address another edition's ordinal.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "anchor_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "edition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ordinal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "locator": {
+      "$ref": "#/$defs/locator"
+    },
+    "text_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the normalized source segment, used to detect drift."
+    },
+    "reveal_kind": {
+      "type": "string",
+      "enum": [
+        "chapter_start",
+        "paragraph",
+        "image",
+        "note"
+      ],
+      "description": "Coarse classification used for chapter-level rewind and UI grouping."
+    }
+  },
+  "required": [
+    "anchor_id",
+    "edition_id",
+    "ordinal",
+    "locator",
+    "reveal_kind"
+  ],
+  "$defs": {
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Normalized source location. Page numbers are never used: reflow, font size and screen width change them.",
+      "properties": {
+        "href": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resource path inside the publication."
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Readium locator type or media type of the target resource."
+        },
+        "title": {
+          "type": "string"
+        },
+        "progression": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Relative position inside the resource."
+        },
+        "total_progression": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Relative position inside the publication."
+        },
+        "text_before": {
+          "type": "string",
+          "description": "Bounded context used for anchor stability checks; never a full passage."
+        },
+        "text_after": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "href",
+        "type"
+      ]
+    }
+  }
+}

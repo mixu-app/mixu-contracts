@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/graph-pack-manifest.schema.json",
+  "title": "GraphPackManifest",
+  "description": "Package manifest for a downloadable or locally generated graph pack. Edition identity and checksums gate installation; provenance fields make an extraction reproducible and reviewable.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "graph_schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "work_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "edition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "graph_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "reveal_anchor_map_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "checksum_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "package_format": {
+      "type": "string",
+      "enum": [
+        "sqlite+zstd",
+        "sqlite"
+      ]
+    },
+    "publication_policy": {
+      "type": "string",
+      "enum": [
+        "PRIVATE_ONLY",
+        "AUTHORIZED_PUBLIC"
+      ]
+    },
+    "source_excerpt_policy": {
+      "type": "string",
+      "enum": [
+        "LOCATOR_ONLY",
+        "BOUNDED_QUOTE",
+        "PUBLIC_DOMAIN_QUOTE"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Populated for extracted packs. A pack built by hand may omit model fields but must keep validator_version.",
+      "properties": {
+        "extraction_version": {
+          "type": "string"
+        },
+        "model_id": {
+          "type": "string"
+        },
+        "prompt_version": {
+          "type": "string"
+        },
+        "validator_version": {
+          "type": "string"
+        },
+        "quality_report_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "validator_version"
+      ]
+    },
+    "copyright_basis": {
+      "type": "string",
+      "enum": [
+        "SYNTHETIC_ORIGINAL",
+        "PUBLIC_DOMAIN",
+        "LICENSED",
+        "AUTHORIZED_BY_USER"
+      ],
+      "description": "Rights basis for any stored excerpt. AUTHORIZED_BY_USER never permits public redistribution."
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assertions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_anchors": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "required": [
+    "graph_schema_version",
+    "work_id",
+    "edition_id",
+    "graph_version",
+    "reveal_anchor_map_version",
+    "checksum_sha256",
+    "package_format",
+    "publication_policy",
+    "source_excerpt_policy",
+    "created_at",
+    "copyright_basis"
+  ]
+}

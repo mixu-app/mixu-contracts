@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.mixu.app/graph/v1/identity-link.schema.json",
+  "title": "IdentityLink",
+  "description": "Reveal-scoped link between two entities (for example two personas confirmed as one person). Before its boundary the projection must render them as separate entities.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "link_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entity_ids": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "CANDIDATE",
+        "SUPPORTED",
+        "CONFIRMED"
+      ]
+    },
+    "first_reveal": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evidence_anchor_id": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "link_id",
+    "entity_ids",
+    "kind",
+    "first_reveal"
+  ]
+}

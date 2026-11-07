@@ -1,0 +1,32 @@
+{
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": {
+      "siblings_only": true
+    },
+    "MD025": {
+      "front_matter_title": ""
+    },
+    "MD033": false,
+    "MD060": false
+  },
+  "globs": [
+    "**/*.md"
+  ],
+  "ignores": [
+    ".carryctx",
+    ".git",
+    ".worktrees",
+    "recording",
+    ".agents",
+    "node_modules",
+    "build",
+    "dist",
+    "site",
+    "_site",
+    "target",
+    "coverage",
+    ".venv"
+  ]
+}
