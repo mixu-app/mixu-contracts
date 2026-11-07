@@ -45,6 +45,7 @@
 ```sh
 just check      # markdownlint + contract validation
 just validate   # schemas, $refs, examples, OpenAPI pointers
+just sync-uris  # sync schema $ids and OpenAPI servers from config
 ```
 
 The validator must be able to fail: break a `$ref` character or an example field

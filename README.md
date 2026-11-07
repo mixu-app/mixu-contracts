@@ -8,11 +8,12 @@
 ## 内容
 
 ```text
+config/           # 权威基础 URI 配置（schema $id 与 OpenAPI servers）
 schemas/graph/    # 叙事图 / 图包格式，schema 版本 1（draft）
 schemas/api/      # 错误信封与错误码注册表
 api/openapi.yaml  # /v1 草案骨架（proposal，不是已发布契约）
 examples/         # 示例载荷，必须能通过 schema 校验
-tools/            # 无网络即可运行的校验脚本
+tools/            # 无网络即可运行的校验与同步脚本
 ```
 
 ## 设计要点（与产品文档对应）
@@ -45,6 +46,7 @@ tools/            # 无网络即可运行的校验脚本
 ```sh
 just check         # markdownlint + 全部契约校验
 just validate      # 仅契约：schema 合法、$ref 可解析、示例合规、OpenAPI 指针可解析
+just sync-uris     # 从 config/ 同步 schema $id 与 OpenAPI servers URL
 ```
 
 `just validate` 不需要网络，也不下载 schema：它在本仓库内建立 `$id` 注册表。
