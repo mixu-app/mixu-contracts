@@ -18,7 +18,7 @@ tools/            # 无网络即可运行的校验脚本
 ## 设计要点（与产品文档对应）
 
 - **两个时间轴**：`story_time`（故事世界内）与 `first_reveal`（读者何时能知道）分开。
-  见 [`docs/specifications/narrative-graph.md`](https://github.com/mixu-app/mixu-docs/blob/main/docs/specifications/narrative-graph.md)。
+  见 `mixu-docs`（内部私有仓库）。
 - **声称不等于事实**：`attribution.kind` 与 `epistemic_status` 必填，后来才被推翻的信息
   用 `assertion-transition` **追加**，不覆盖历史。
 - **身份合并是有揭示边界的**：`identity-link.first_reveal` 之前，投影必须把两个 persona
