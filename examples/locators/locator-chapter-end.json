@@ -1,0 +1,16 @@
+{
+  "doc_id": "urn:mixu:doc:study-in-scarlet",
+  "edition_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "spine_index": 1,
+  "spine_item_id": "chapter02",
+  "spine_href": "text/chapter02.xhtml",
+  "char_offset": 3140,
+  "progression": 1.0,
+  "total_progression": 0.285,
+  "cfi": "/6/6[chapter02]!/4/2/42:15",
+  "text_quote": {
+    "exact": "End of Chapter II.",
+    "prefix": "into the cab. ",
+    "suffix": ""
+  }
+}

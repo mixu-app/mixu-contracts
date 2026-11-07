@@ -34,9 +34,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from uri_config import load_config
 
-# Examples are matched to a schema by file-name prefix.
+# Examples are matched to a schema by file-name prefix or exact stem.
 EXAMPLE_TARGETS = {
     "graph-pack-manifest": "schemas/graph/graph-pack-manifest.schema.json",
+    "locator": "schemas/common/locator.schema.json",
+    "locator-start": "schemas/common/locator.schema.json",
+    "locator-mid-chapter": "schemas/common/locator.schema.json",
+    "locator-chapter-end": "schemas/common/locator.schema.json",
 }
 
 
@@ -86,9 +90,15 @@ def registry_for(schemas: dict[str, dict]) -> Registry:
 
 def check_examples(schemas: dict[str, dict], registry: Registry) -> list[str]:
     problems: list[str] = []
-    for path in sorted(ROOT.glob("examples/*.json")):
+    example_files = sorted(p for p in ROOT.glob("examples/**/*.json") if p.is_file())
+    for path in example_files:
         rel = path.relative_to(ROOT)
         target = EXAMPLE_TARGETS.get(path.stem)
+        if target is None:
+            for prefix, schema_target in EXAMPLE_TARGETS.items():
+                if path.stem.startswith(f"{prefix}-") or path.stem == prefix:
+                    target = schema_target
+                    break
         if target is None:
             problems.append(f"{rel}: no schema mapping; add one to EXAMPLE_TARGETS")
             continue

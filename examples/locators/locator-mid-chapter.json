@@ -1,0 +1,20 @@
+{
+  "doc_id": "urn:mixu:doc:study-in-scarlet",
+  "edition_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "spine_index": 1,
+  "spine_item_id": "chapter02",
+  "spine_href": "text/chapter02.xhtml",
+  "char_offset": 1420,
+  "char_range": {
+    "start": 1420,
+    "end": 1498
+  },
+  "progression": 0.452,
+  "total_progression": 0.128,
+  "cfi": "/6/6[chapter02]!/4/2/18/1:42",
+  "text_quote": {
+    "exact": "There's the scarlet thread of murder running through the colourless skein of life",
+    "prefix": "what he was aiming at. ",
+    "suffix": ", and our duty is to unravel it"
+  }
+}
