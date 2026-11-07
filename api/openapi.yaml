@@ -23,7 +23,7 @@ info:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
 servers:
-  - url: https://api.example.invalid/v1
+  - url: https://api.mixu.app/v1
     description: Placeholder host. Production hostnames are not part of this proposal.
 security:
   - bearerAuth: []

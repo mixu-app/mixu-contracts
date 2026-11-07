@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Validate every contract in this repository without network access.
 
 Checks performed:
 
-1. Every `schemas/**/*.json` is a valid JSON Schema 2020-12 document and
-   carries a unique absolute `$id`.
+1. Every `schemas/**/*.json` is a valid JSON Schema 2020-12 document,
+   carries a unique absolute `$id`, and starts with the configured base URI.
 2. Cross-schema `$ref` values resolve inside the local registry.
 3. Every `examples/*.json` validates against its declared target schema.
-4. `api/openapi.yaml` parses, every `#/components/...` pointer resolves, and
-   every operationId is unique.
+4. `api/openapi.yaml` parses, every `#/components/...` pointer resolves,
+   every operationId is unique, and `servers` matches configured API base URI.
 5. Error codes referenced by the OpenAPI document exist in the error schema.
 
 Exit codes: 0 = clean, 1 = at least one finding.
@@ -16,6 +17,7 @@ Exit codes: 0 = clean, 1 = at least one finding.
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -28,6 +30,9 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from uri_config import load_config
 
 # Examples are matched to a schema by file-name prefix.
 EXAMPLE_TARGETS = {
@@ -35,9 +40,10 @@ EXAMPLE_TARGETS = {
 }
 
 
-def load_schemas() -> tuple[dict[str, dict], list[str]]:
+def load_schemas(base_uri: str) -> tuple[dict[str, dict], list[str]]:
     schemas: dict[str, dict] = {}
     problems: list[str] = []
+    base_prefix = base_uri.rstrip("/")
     for path in sorted(ROOT.glob("schemas/**/*.json")):
         rel = path.relative_to(ROOT)
         try:
@@ -54,6 +60,11 @@ def load_schemas() -> tuple[dict[str, dict], list[str]]:
         if not schema_id:
             problems.append(f"{rel}: missing absolute $id")
             continue
+        if not schema_id.startswith(base_prefix):
+            problems.append(
+                f"{rel}: $id '{schema_id}' does not start with configured base URI '{base_prefix}'"
+            )
+            continue
         if schema_id in schemas:
             problems.append(f"{rel}: duplicate $id {schema_id}")
             continue
@@ -63,7 +74,13 @@ def load_schemas() -> tuple[dict[str, dict], list[str]]:
 
 def registry_for(schemas: dict[str, dict]) -> Registry:
     return Registry().with_resources(
-        [(uri, Resource.from_contents(doc, default_specification=DRAFT202012)) for uri, doc in schemas.items()]
+        [
+            (
+                uri,
+                Resource.from_contents(doc, default_specification=DRAFT202012),
+            )
+            for uri, doc in schemas.items()
+        ]
     )
 
 
@@ -79,7 +96,9 @@ def check_examples(schemas: dict[str, dict], registry: Registry) -> list[str]:
         payload = json.loads(path.read_text(encoding="utf-8"))
         validator = Draft202012Validator(schema, registry=registry)
         for error in sorted(validator.iter_errors(payload), key=lambda e: list(e.path)):
-            problems.append(f"{rel}: {'/'.join(map(str, error.path)) or '<root>'}: {error.message}")
+            problems.append(
+                f"{rel}: {'/'.join(map(str, error.path)) or '<root>'}: {error.message}"
+            )
     return problems
 
 
@@ -96,16 +115,32 @@ def resolve_pointer(root: object, pointer: str) -> bool:
     return True
 
 
-def check_openapi(schemas: dict[str, dict]) -> list[str]:
+def check_openapi(
+    schemas: dict[str, dict], base_uri: str, api_base_uri: str
+) -> list[str]:
     problems: list[str] = []
     path = ROOT / "api" / "openapi.yaml"
     text = path.read_text(encoding="utf-8")
     doc = yaml.safe_load(text)
     rel = "api/openapi.yaml"
 
+    servers = doc.get("servers", [])
+    if not servers:
+        problems.append(f"{rel}: missing servers block")
+    else:
+        server_urls = [
+            s.get("url") for s in servers if isinstance(s, dict) and "url" in s
+        ]
+        if not server_urls or not any(u.startswith(api_base_uri) for u in server_urls):
+            problems.append(
+                f"{rel}: server URL '{server_urls}' does not start with configured API base URI '{api_base_uri}'"
+            )
+
     pointers = set(re.findall(r'\$ref:\s*"?(#/[^"\s]+)', text))
     if not pointers:
-        problems.append(f"{rel}: no local $ref pointers found; the pointer gate would be vacuous")
+        problems.append(
+            f"{rel}: no local $ref pointers found; the pointer gate would be vacuous"
+        )
     for pointer in sorted(pointers):
         if not resolve_pointer(doc, pointer[1:]):
             problems.append(f"{rel}: unresolved pointer {pointer}")
@@ -116,9 +151,9 @@ def check_openapi(schemas: dict[str, dict]) -> list[str]:
         problems.append(f"{rel}: duplicate operationId {duplicate}")
 
     error_codes = set(
-        json.loads((ROOT / "schemas" / "api" / "error.schema.json").read_text(encoding="utf-8"))["properties"][
-            "code"
-        ]["enum"]
+        json.loads(
+            (ROOT / "schemas" / "api" / "error.schema.json").read_text(encoding="utf-8")
+        )["properties"]["code"]["enum"]
     )
     used = set(re.findall(r"\b([A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+)\b", text))
     allow = {
@@ -130,29 +165,47 @@ def check_openapi(schemas: dict[str, dict]) -> list[str]:
         "PRIVATE_ONLY",
     }
     for token in sorted(used - error_codes - allow):
-        problems.append(f"{rel}: unknown upper-case token {token} (add it to the error schema or the allow list)")
+        problems.append(
+            f"{rel}: unknown upper-case token {token} (add it to the error schema or the allow list)"
+        )
 
+    error_schema_prefix = f"{base_uri.rstrip('/')}/api/"
     for name in schemas:
-        if name.startswith("https://schemas.mixu.app/api/") and "error.schema.json" in name:
+        if name.startswith(error_schema_prefix) and "error.schema.json" in name:
             continue
     return problems
 
 
 def main() -> int:
-    schemas, problems = load_schemas()
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--config", help="Path to base URI configuration file")
+    args = parser.parse_args()
+
+    try:
+        base_uri, api_base_uri, _ = load_config(args.config)
+    except (ValueError, FileNotFoundError, OSError) as exc:
+        print(f"config error: {exc}", file=sys.stderr)
+        return 1
+
+    schemas, problems = load_schemas(base_uri)
     if problems:
         for problem in problems:
             print(problem)
         return 1
     registry = registry_for(schemas)
     problems += check_examples(schemas, registry)
-    problems += check_openapi(schemas)
+    problems += check_openapi(schemas, base_uri, api_base_uri)
     for problem in problems:
         print(problem)
     if problems:
         print(f"\n{len(problems)} contract problem(s)", file=sys.stderr)
         return 1
-    print(f"contracts ok: {len(schemas)} schemas, examples and openapi validated")
+    print(
+        f"contracts ok: {len(schemas)} schemas, examples and openapi validated (base URI: {base_uri})"
+    )
     return 0
 
 

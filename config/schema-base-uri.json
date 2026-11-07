@@ -1,0 +1,4 @@
+{
+  "$comment": "Authoritative base URI configuration for schemas and OpenAPI servers",
+  "schema_base_uri": "https://schemas.mixu.app"
+}
