@@ -45,5 +45,8 @@ are independent of the repository version.
 - Error envelope schema with the shared error-code registry.
 - `api/openapi.yaml`: draft `/v1` skeleton (`/health`, `/me`, `/sync/push`,
   `/sync/pull`, `/graphs/{pack_id}/download`) with documented invariants.
+- Job and upload lifecycle endpoints (`/uploads/intent`, `/jobs`,
+  `/jobs/{job_id}`, `/jobs/{job_id}/cancel`, `/jobs/{job_id}/result`) with
+  idempotent creation, pagination conventions, and lifecycle schemas.
 - `tools/validate_contracts.py` plus `just check`/`just validate` gates; the
   gate fails on an unresolved `$ref` and on a malformed example.

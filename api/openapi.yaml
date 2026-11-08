@@ -19,6 +19,16 @@ info:
     - Error bodies follow `error.schema.json`; clients branch on `code`.
     - No response returns credentials, full book content, or graph data beyond
       the authorized reveal horizon.
+
+    Conventions:
+
+    - Idempotency: Mutating operations (such as `POST /jobs`, `POST /sync/push`,
+      and `POST /jobs/{job_id}/cancel`) accept an `idempotency_key` or mutation id.
+      Retrying with the same key returns the existing resource without re-executing
+      side effects.
+    - Pagination: Collections (such as `GET /jobs` and `GET /sync/pull`) use
+      opaque cursor-based pagination with `cursor` and optional `limit` query
+      parameters, returning a `next_cursor` when subsequent records exist.
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -32,6 +42,8 @@ tags:
   - name: account
   - name: sync
   - name: graphs
+  - name: uploads
+  - name: jobs
 x-mixu-status: proposal
 paths:
   /health:
@@ -165,6 +177,194 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /uploads/intent:
+    post:
+      operationId: createUploadIntent
+      summary: Request presigned upload URL
+      description: |
+        Generates a short-lived presigned S3 upload URL with a SHA-256 checksum constraint
+        and maximum size limit. The client uploads the book file directly to object storage.
+        Returns `INVALID_REQUEST` on invalid input or `STORAGE_QUOTA_EXCEEDED` if quota is full.
+      tags: [uploads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadIntentRequest"
+      responses:
+        "200":
+          description: Presigned upload session created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadIntentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /jobs:
+    post:
+      operationId: createJob
+      summary: Create an extraction or validation job
+      description: |
+        Creates an asynchronous narrative extraction or edition validation job from a verified
+        uploaded asset. The operation is idempotent via `idempotency_key`. Retrying with the
+        same key returns the existing job. Returns `NOT_FOUND` if the upload does not exist,
+        `UPLOAD_NOT_VERIFIED` if checksum verification failed, or `INVALID_EDITION` if the
+        edition is not recognized.
+      tags: [jobs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobRequest"
+      responses:
+        "201":
+          description: Job created and queued for execution, or existing job returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    get:
+      operationId: listJobs
+      summary: List asynchronous jobs
+      description: |
+        Retrieves a paginated list of background processing jobs for the authenticated
+        user, ordered by creation time descending.
+      tags: [jobs]
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque pagination cursor from a previous page.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of jobs to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          required: false
+          description: Optional filter by job lifecycle status.
+          schema:
+            $ref: "#/components/schemas/JobStatus"
+      responses:
+        "200":
+          description: Paginated list of jobs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /jobs/{job_id}:
+    get:
+      operationId: getJob
+      summary: Get job status and execution details
+      description: |
+        Returns the current state, progress percentage, step details, and any error
+        information for a background processing job. Returns `NOT_FOUND` if the job
+        does not exist or is not owned by the authenticated caller.
+      tags: [jobs]
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: Unique job identifier.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current job status and progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /jobs/{job_id}/cancel:
+    post:
+      operationId: cancelJob
+      summary: Request cooperative cancellation
+      description: |
+        Requests cooperative cancellation of an in-flight background job. The worker stops
+        processing at the next safe cancellation checkpoint. If cancelled, the job transitions
+        to `cancelled` with error code `BUILD_CANCELLED`. Returns `NOT_FOUND` if the job does not
+        exist, or `409` Conflict if the job is already in a terminal state.
+      tags: [jobs]
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: Unique job identifier.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancellation request recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobCancelResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /jobs/{job_id}/result:
+    get:
+      operationId: getJobResult
+      summary: Get completed job result
+      description: |
+        Returns the download intent and graph pack reference for a completed job.
+        Returns `NOT_FOUND` if the job does not exist, or `409` Conflict if the job
+        is still processing, queued, failed, or cancelled.
+      tags: [jobs]
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: Unique job identifier.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job result details and graph pack download reference.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResultResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
 components:
   securitySchemes:
     bearerAuth:
@@ -286,9 +486,271 @@ components:
           additionalProperties: true
           description: Must validate against the graph pack manifest schema (schemas/graph/graph-pack-manifest.schema.json).
       required: [pack_id, download_url, expires_at, manifest]
+    UploadIntentRequest:
+      type: object
+      additionalProperties: false
+      description: Parameters for requesting a presigned direct upload URL.
+      properties:
+        filename:
+          type: string
+          description: Original file name of the asset to upload.
+        content_type:
+          type: string
+          description: MIME type of the uploaded file (e.g. application/epub+zip).
+        size_bytes:
+          type: integer
+          minimum: 1
+          description: Exact size of the asset file in bytes.
+        sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: Hex-encoded SHA-256 digest of the file contents.
+        purpose:
+          type: string
+          enum: [graph_build, edition_validation]
+          description: Intended processing workflow for the uploaded file.
+      required: [filename, content_type, size_bytes, sha256, purpose]
+    UploadIntentResponse:
+      type: object
+      additionalProperties: false
+      description: Presigned upload URL and authorization parameters.
+      properties:
+        upload_id:
+          type: string
+          description: Unique identifier for tracking this upload session.
+        upload_url:
+          type: string
+          description: Short-lived presigned URL. Treat as a bearer capability; do not log or share it.
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the presigned URL expires.
+        max_size_bytes:
+          type: integer
+          minimum: 1
+          description: Maximum allowed payload size in bytes for the upload.
+        required_headers:
+          type: object
+          additionalProperties: true
+          description: HTTP headers that must be sent with the direct upload request.
+      required: [upload_id, upload_url, expires_at, max_size_bytes]
+    JobStatus:
+      type: string
+      enum: [queued, processing, completed, failed, cancelled]
+      description: Current execution status of an asynchronous job.
+    JobProgress:
+      type: object
+      additionalProperties: false
+      description: Execution progress tracking information for a background job.
+      properties:
+        percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Completion percentage from 0 to 100.
+        current_step:
+          type: string
+          description: Name of the pipeline step currently executing.
+        total_steps:
+          type: integer
+          minimum: 1
+          description: Total number of discrete steps in the processing pipeline.
+        step_index:
+          type: integer
+          minimum: 0
+          description: Zero-based index of the current execution step.
+        message:
+          type: string
+          description: Safe human-readable progress message without sensitive context.
+      required: [percentage, current_step]
+    CreateJobRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload to create an extraction or validation job.
+      properties:
+        idempotency_key:
+          type: string
+          maxLength: 128
+          description: Client-supplied key to ensure idempotent job creation.
+        upload_id:
+          type: string
+          description: Identifier of the completed and verified asset upload.
+        job_type:
+          type: string
+          enum: [extraction, validation]
+          default: extraction
+          description: Type of processing job to execute.
+        work_id:
+          type: string
+          description: Canonical work identifier associated with the asset.
+        edition_id:
+          type: string
+          description: Target edition identifier for fingerprinting and alignment.
+        options:
+          type: object
+          additionalProperties: true
+          description: Optional execution flags and algorithm parameters.
+      required: [idempotency_key, upload_id, work_id, edition_id]
+    JobSummary:
+      type: object
+      additionalProperties: false
+      description: Summary representation of an asynchronous job.
+      properties:
+        job_id:
+          type: string
+          description: Unique identifier of the job.
+        job_type:
+          type: string
+          enum: [extraction, validation]
+          description: Type of processing job.
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        work_id:
+          type: string
+          description: Canonical work identifier.
+        edition_id:
+          type: string
+          description: Edition identifier.
+        progress:
+          $ref: "#/components/schemas/JobProgress"
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the job was enqueued.
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last status update.
+        completed_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when processing reached terminal status.
+      required:
+        [job_id, job_type, status, work_id, edition_id, created_at, updated_at]
+    JobDetail:
+      type: object
+      additionalProperties: false
+      description: Detailed state and telemetry of an asynchronous job.
+      properties:
+        job_id:
+          type: string
+          description: Unique identifier of the job.
+        job_type:
+          type: string
+          enum: [extraction, validation]
+          description: Type of processing job.
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        work_id:
+          type: string
+          description: Canonical work identifier.
+        edition_id:
+          type: string
+          description: Edition identifier.
+        upload_id:
+          type: string
+          description: Source upload identifier used to spawn this job.
+        progress:
+          $ref: "#/components/schemas/JobProgress"
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the job was enqueued.
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last status update.
+        completed_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when processing reached terminal status.
+        error_code:
+          type: string
+          description: Machine-readable error code if the job failed.
+        error_message:
+          type: string
+          description: Human-readable error description if the job failed.
+        pack_id:
+          type: string
+          description: Resulting graph package identifier if job completed successfully.
+        options:
+          type: object
+          additionalProperties: true
+          description: Execution options supplied when the job was created.
+      required:
+        [
+          job_id,
+          job_type,
+          status,
+          work_id,
+          edition_id,
+          upload_id,
+          progress,
+          created_at,
+          updated_at,
+        ]
+    JobListResponse:
+      type: object
+      additionalProperties: false
+      description: Paginated collection of asynchronous jobs.
+      properties:
+        results:
+          type: array
+          description: List of job summaries matching query parameters.
+          items:
+            $ref: "#/components/schemas/JobSummary"
+        next_cursor:
+          type: string
+          description: Opaque cursor for the next page, or empty when no further items exist.
+      required: [results, next_cursor]
+    JobCancelResponse:
+      type: object
+      additionalProperties: false
+      description: Result of a job cancellation request.
+      properties:
+        job_id:
+          type: string
+          description: Unique identifier of the job requested for cancellation.
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        message:
+          type: string
+          description: Safe human-readable acknowledgement of cancellation request.
+      required: [job_id, status, message]
+    JobResultResponse:
+      type: object
+      additionalProperties: false
+      description: Download reference and manifest for artifacts produced by a completed job.
+      properties:
+        job_id:
+          type: string
+          description: Unique identifier of the completed job.
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        pack_id:
+          type: string
+          description: Generated graph pack identifier.
+        download_url:
+          type: string
+          description: Short-lived presigned URL. Treat as a bearer capability; do not log or share it.
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the download URL expires.
+        manifest:
+          type: object
+          additionalProperties: true
+          description: Graph pack manifest describing the generated narrative assets.
+      required: [job_id, status, pack_id, download_url, expires_at]
     Error:
       $ref: "./error.schema.json"
   responses:
+    BadRequest:
+      description: Malformed payload, invalid query parameter or schema validation failure.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Missing, expired or invalid token.
       content:
