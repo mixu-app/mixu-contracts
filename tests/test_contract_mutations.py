@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import shutil
 import sys
 from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+import yaml
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 from referencing import Registry, Resource
@@ -679,3 +681,80 @@ def test_rule_openapi_unknown_error_code_token_rejected(
 
     problems = val_mod.check_openapi(schemas, base_uri, api_base)
     assert any("unknown upper-case token UNKNOWN_ERROR_CODE_XYZ" in p for p in problems)
+
+
+def test_rule_openapi_job_lifecycle_operations_defined() -> None:
+    """Rule protected: api/openapi.yaml must declare all required job lifecycle operationIds."""
+    path = REPO_ROOT / "api" / "openapi.yaml"
+    text = path.read_text(encoding="utf-8")
+    expected_ops = {
+        "createUploadIntent",
+        "createJob",
+        "listJobs",
+        "getJob",
+        "cancelJob",
+        "getJobResult",
+    }
+    found_ops = set(re.findall(r"operationId:\s*(\S+)", text))
+    assert expected_ops.issubset(found_ops), (
+        f"Missing operations: {expected_ops - found_ops}"
+    )
+
+
+def test_rule_openapi_job_lifecycle_schemas_defined() -> None:
+    """Rule protected: api/openapi.yaml components/schemas must declare all required job lifecycle schemas."""
+    path = REPO_ROOT / "api" / "openapi.yaml"
+    doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+    schemas = doc.get("components", {}).get("schemas", {})
+    expected_schemas = {
+        "UploadIntentRequest",
+        "UploadIntentResponse",
+        "CreateJobRequest",
+        "JobSummary",
+        "JobDetail",
+        "JobStatus",
+        "JobProgress",
+        "JobListResponse",
+        "JobCancelResponse",
+        "JobResultResponse",
+    }
+    assert expected_schemas.issubset(set(schemas.keys())), (
+        f"Missing schemas: {expected_schemas - set(schemas.keys())}"
+    )
+
+
+def test_rule_openapi_job_duplicate_operation_id_caught(
+    isolated_contracts_tree: Path,
+    schemas: dict[str, dict],
+) -> None:
+    """Rule protected: Duplicate operationId in job lifecycle must be caught by validator."""
+    base_uri, api_base, _ = load_config()
+    api_yaml = isolated_contracts_tree / "api" / "openapi.yaml"
+    text = api_yaml.read_text(encoding="utf-8")
+
+    mutated = text.replace("operationId: cancelJob", "operationId: createJob")
+    api_yaml.write_text(mutated, encoding="utf-8")
+
+    problems = val_mod.check_openapi(schemas, base_uri, api_base)
+    assert "api/openapi.yaml: duplicate operationId createJob" in problems
+
+
+def test_rule_openapi_job_broken_ref_pointer_caught(
+    isolated_contracts_tree: Path,
+    schemas: dict[str, dict],
+) -> None:
+    """Rule protected: Broken $ref pointer in job lifecycle must be detected."""
+    base_uri, api_base, _ = load_config()
+    api_yaml = isolated_contracts_tree / "api" / "openapi.yaml"
+    text = api_yaml.read_text(encoding="utf-8")
+
+    mutated = text.replace(
+        "#/components/schemas/JobDetail", "#/components/schemas/NonExistentJobDetail"
+    )
+    api_yaml.write_text(mutated, encoding="utf-8")
+
+    problems = val_mod.check_openapi(schemas, base_uri, api_base)
+    assert any(
+        "unresolved pointer #/components/schemas/NonExistentJobDetail" in p
+        for p in problems
+    )
