@@ -42,6 +42,9 @@ tags:
   - name: account
   - name: sync
   - name: graphs
+  - name: catalog
+  - name: billing
+  - name: storage
   - name: uploads
   - name: jobs
 x-mixu-status: proposal
@@ -365,6 +368,175 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /billing/wallet:
+    get:
+      operationId: getBillingWallet
+      summary: Three-bucket Credit wallet summary
+      description: |
+        Returns the authenticated user's three-bucket Credit wallet (`GET /v1/billing/wallet`).
+        Monetary anchor: `1 Credit = 100 minor_units` (`100 Credits = ¥1.00 RMB`).
+        Credits are consumed strictly in order `promo_credits_minor -> sub_credits_minor -> paid_credits_minor`.
+      tags: [billing]
+      responses:
+        "200":
+          description: Three-bucket Credit wallet balance summary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WalletSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /billing/ad-rewards/qr-challenge:
+    post:
+      operationId: createAdRewardQrChallenge
+      summary: Generate E-Ink cross-device QR ad challenge
+      description: |
+        Generates a short-lived cross-device QR session token (`POST /v1/billing/ad-rewards/qr-challenge`)
+        for E-Ink devices where `eink_mode=true` so that video ads are completed on a companion phone
+        without initializing video ad SDKs on E-Ink hardware.
+      tags: [billing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdRewardQrChallengeRequest"
+      responses:
+        "200":
+          description: Short-lived cross-device QR challenge created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdRewardQrChallengeResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /billing/ad-rewards/verify:
+    post:
+      operationId: verifyAdReward
+      summary: Verify rewarded ad completion and grant promo credits
+      description: |
+        Server-side verification callback (`POST /v1/billing/ad-rewards/verify`) granting
+        `+300 minor_units` (`3 promo_credits`) per verified ad idempotently, subject to a daily cap
+        of `3000 minor_units` (`30 Credits/day`). Returns `RATE_LIMITED` when the daily ad reward cap
+        is exceeded or `INVALID_REQUEST` when the signature is invalid.
+      tags: [billing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdRewardVerifyRequest"
+      responses:
+        "200":
+          description: Ad reward verified and promo credits granted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdRewardVerifyResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /catalog/packs/{packId}/publish:
+    post:
+      operationId: publishMarketplacePack
+      summary: Publish validated GraphPack to shared marketplace
+      description: |
+        Publishes an owner-validated GraphPack to the Community Shared GraphPack Marketplace
+        (`POST /v1/catalog/packs/{packId}/publish`, ADR-040) for `0` upload fee, recording
+        `epub_sha256` (L1 exact binary match), `structure_fingerprint` (L2 structural skeleton match),
+        `isbn` (L3 metadata match), and `build_cost_minor` (used to cap creator royalties at `200%`).
+      tags: [catalog]
+      parameters:
+        - name: packId
+          in: path
+          required: true
+          description: Unique graph pack identifier to publish.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishMarketplacePackRequest"
+      responses:
+        "200":
+          description: GraphPack published to shared marketplace.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketplacePackSummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /catalog/packs/{packId}/purchase:
+    post:
+      operationId: purchaseMarketplacePack
+      summary: Purchase or unlock a community shared GraphPack
+      description: |
+        Downloads/unlocks a community shared GraphPack (`POST /v1/catalog/packs/{packId}/purchase`, ADR-040)
+        for `300 minor_units` (`3 Credits`), granting `+100 minor_units` (`+1 promo_credit`) creator royalty
+        to the original uploader up to `200%` of `build_cost_minor`. Pack owners download for `0` charge.
+        Returns `INSUFFICIENT_CREDITS` if the buyer's available balance is below `300 minor_units`.
+      tags: [catalog]
+      parameters:
+        - name: packId
+          in: path
+          required: true
+          description: Unique graph pack identifier to purchase or unlock.
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseMarketplacePackRequest"
+      responses:
+        "200":
+          description: Shared GraphPack unlocked and download intent issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseMarketplacePackResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /storage/quota:
+    get:
+      operationId: getStorageQuota
+      summary: Cloud storage quota and 7-day grace period status
+      description: |
+        Returns the authenticated user's cloud storage quota, byte usage, subscription status
+        (`ACTIVE | GRACE_PERIOD | OVER_QUOTA_EVICTED`), and `grace_period_ends_at` timestamp
+        (`GET /v1/storage/quota`, ADR-030).
+      tags: [storage]
+      responses:
+        "200":
+          description: Current storage quota and subscription grace period state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageQuotaSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 components:
   securitySchemes:
     bearerAuth:
@@ -742,6 +914,256 @@ components:
           additionalProperties: true
           description: Graph pack manifest describing the generated narrative assets.
       required: [job_id, status, pack_id, download_url, expires_at]
+    WalletSummary:
+      type: object
+      additionalProperties: false
+      description: Three-bucket Credit wallet summary (`1 Credit = 100 minor_units`, `100 Credits = ¥1.00 RMB`).
+      properties:
+        user_id:
+          type: string
+          description: Mixu-internal immutable user UUID.
+        promo_credits_minor:
+          type: integer
+          minimum: 0
+          description: Promotional, ad-rewarded, and creator royalty balance in minor units (consumed first).
+        sub_credits_minor:
+          type: integer
+          minimum: 0
+          description: Subscription entitlement balance in minor units (consumed second).
+        paid_credits_minor:
+          type: integer
+          minimum: 0
+          description: Direct top-up balance in minor units (consumed last, never expires).
+        available_balance_minor:
+          type: integer
+          minimum: 0
+          description: Total spendable balance across all three buckets (`promo + sub + paid`).
+        reserved_balance_minor:
+          type: integer
+          minimum: 0
+          description: Balance currently held by in-flight job or query reservations.
+      required:
+        [
+          user_id,
+          promo_credits_minor,
+          sub_credits_minor,
+          paid_credits_minor,
+          available_balance_minor,
+          reserved_balance_minor,
+        ]
+    AdRewardQrChallengeRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload to generate a short-lived cross-device QR ad session for E-Ink devices.
+      properties:
+        device_id:
+          type: string
+          description: Client device identifier requesting the cross-device QR flow.
+        eink_mode:
+          type: boolean
+          default: true
+          description: Indicates whether E-Ink policy (`EInkPolicy.isActive`) is active on the requesting device.
+      required: [device_id, eink_mode]
+    AdRewardQrChallengeResponse:
+      type: object
+      additionalProperties: false
+      description: Short-lived cross-device QR session token for completing a rewarded ad on a companion phone.
+      properties:
+        challenge_id:
+          type: string
+          description: Unique challenge identifier bound to the authenticated user and E-Ink device.
+        qr_payload:
+          type: string
+          description: Compact cross-device verification URI/token to encode into a static QR code.
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the QR challenge expires.
+        reward_minor:
+          type: integer
+          minimum: 1
+          description: Promotional credits in minor units (`300 minor_units` = `3 promo_credits`) granted upon completion.
+      required: [challenge_id, qr_payload, expires_at, reward_minor]
+    AdRewardVerifyRequest:
+      type: object
+      additionalProperties: false
+      description: Server-side verification (SSV) payload for a completed rewarded ad or cross-device QR challenge.
+      properties:
+        challenge_or_ad_id:
+          type: string
+          description: E-Ink `challenge_id` or ad network transaction identifier for idempotent reward verification.
+        signature:
+          type: string
+          description: HMAC verification signature proving ad completion.
+      required: [challenge_or_ad_id, signature]
+    AdRewardVerifyResponse:
+      type: object
+      additionalProperties: false
+      description: Result of verifying a rewarded ad and crediting the user's promotional bucket.
+      properties:
+        challenge_or_ad_id:
+          type: string
+          description: Verified challenge or ad transaction identifier.
+        granted_minor:
+          type: integer
+          minimum: 0
+          description: Promotional credit amount granted in minor units (`300` on first verification, `0` on duplicate).
+        daily_rewarded_minor:
+          type: integer
+          minimum: 0
+          description: Cumulative ad-rewarded minor units granted to this user in the current UTC day.
+        daily_cap_minor:
+          type: integer
+          minimum: 1
+          description: Daily maximum ad-rewarded minor units (`3000 minor_units` = `30 Credits/day`).
+        wallet:
+          $ref: "#/components/schemas/WalletSummary"
+      required:
+        [
+          challenge_or_ad_id,
+          granted_minor,
+          daily_rewarded_minor,
+          daily_cap_minor,
+          wallet,
+        ]
+    PublishMarketplacePackRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload to publish a validated GraphPack to the shared marketplace (`0` upload fee).
+      properties:
+        epub_sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: L1 exact EPUB binary SHA-256 digest.
+        structure_fingerprint:
+          type: string
+          description: L2 normalized chapter structure skeleton fingerprint.
+        isbn:
+          type: string
+          description: Optional L3 ISBN metadata identifier for cross-edition chapter re-anchoring.
+        build_cost_minor:
+          type: integer
+          minimum: 0
+          description: Original GraphPack build cost in minor units (caps creator royalties at `200%`).
+      required: [epub_sha256, structure_fingerprint, build_cost_minor]
+    MarketplacePackSummary:
+      type: object
+      additionalProperties: false
+      description: Metadata of a GraphPack published in the Community Shared GraphPack Marketplace (ADR-040).
+      properties:
+        pack_id:
+          type: string
+        work_id:
+          type: string
+        edition_id:
+          type: string
+        epub_sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+        structure_fingerprint:
+          type: string
+        isbn:
+          type: string
+        build_cost_minor:
+          type: integer
+          minimum: 0
+        royalty_earned_minor:
+          type: integer
+          minimum: 0
+        max_royalty_minor:
+          type: integer
+          minimum: 0
+        download_price_minor:
+          type: integer
+          minimum: 0
+      required:
+        [
+          pack_id,
+          work_id,
+          edition_id,
+          epub_sha256,
+          structure_fingerprint,
+          build_cost_minor,
+          royalty_earned_minor,
+          max_royalty_minor,
+          download_price_minor,
+        ]
+    PurchaseMarketplacePackRequest:
+      type: object
+      additionalProperties: false
+      description: Optional idempotency and edition match parameters when unlocking a shared GraphPack.
+      properties:
+        idempotency_key:
+          type: string
+          maxLength: 128
+          description: Client-supplied idempotency key to prevent duplicate charges.
+        epub_sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: Optional L1 exact EPUB SHA-256 for match resolution.
+        structure_fingerprint:
+          type: string
+          description: Optional L2 chapter structure fingerprint for match resolution.
+        isbn:
+          type: string
+          description: Optional L3 ISBN for match resolution.
+    PurchaseMarketplacePackResponse:
+      type: object
+      additionalProperties: false
+      description: Download capability and billing summary after unlocking a shared marketplace GraphPack.
+      properties:
+        pack_id:
+          type: string
+        charged_minor:
+          type: integer
+          minimum: 0
+          description: Credits deducted from the buyer (`300 minor_units` = `3 Credits`, or `0` for owner/repeat download).
+        royalty_granted_minor:
+          type: integer
+          minimum: 0
+          description: Promotional royalty credited to the original uploader (`100 minor_units` = `1 promo_credit`, up to `200%` of `build_cost_minor`).
+        download_url:
+          type: string
+          description: Short-lived presigned URL. Treat as a bearer capability; do not log or share it.
+        expires_at:
+          type: string
+          format: date-time
+        manifest:
+          type: object
+          additionalProperties: true
+      required:
+        [
+          pack_id,
+          charged_minor,
+          royalty_granted_minor,
+          download_url,
+          expires_at,
+          manifest,
+        ]
+    StorageSubscriptionStatus:
+      type: string
+      enum: [ACTIVE, GRACE_PERIOD, OVER_QUOTA_EVICTED]
+      description: Cloud storage subscription lifecycle state with 7-day `GRACE_PERIOD` before excess EPUB binary eviction.
+    StorageQuotaSummary:
+      type: object
+      additionalProperties: false
+      description: Cloud storage quota and 7-day subscription grace period summary (ADR-030).
+      properties:
+        user_id:
+          type: string
+        quota_limit_bytes:
+          type: integer
+          minimum: 0
+        used_bytes:
+          type: integer
+          minimum: 0
+        subscription_status:
+          $ref: "#/components/schemas/StorageSubscriptionStatus"
+        grace_period_ends_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the 7-day grace period ends if `subscription_status` is `GRACE_PERIOD`.
+      required: [user_id, quota_limit_bytes, used_bytes, subscription_status]
     Error:
       $ref: "./error.schema.json"
   responses:
@@ -753,6 +1175,12 @@ components:
             $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Missing, expired or invalid token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    PaymentRequired:
+      description: Available credit balance is insufficient for the requested operation.
       content:
         application/json:
           schema:
@@ -771,6 +1199,12 @@ components:
             $ref: "#/components/schemas/Error"
     Conflict:
       description: Concurrent edit or duplicate mutation that cannot be applied as-is.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Rate limit or daily ad reward cap exceeded.
       content:
         application/json:
           schema:

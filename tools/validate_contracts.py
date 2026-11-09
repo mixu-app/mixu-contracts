@@ -194,6 +194,8 @@ def check_openapi(
         "PUBLIC_DOMAIN_QUOTE",
         "SYNTHETIC_ORIGINAL",
         "PRIVATE_ONLY",
+        "GRACE_PERIOD",
+        "OVER_QUOTA_EVICTED",
     }
     for token in sorted(used - error_codes - allow):
         problems.append(
