@@ -758,3 +758,55 @@ def test_rule_openapi_job_broken_ref_pointer_caught(
         "unresolved pointer #/components/schemas/NonExistentJobDetail" in p
         for p in problems
     )
+
+
+def test_rule_openapi_billing_marketplace_and_storage_contracts_defined() -> None:
+    """Rule protected: api/openapi.yaml must declare ADR-030 and ADR-040 operations and schemas."""
+    path = REPO_ROOT / "api" / "openapi.yaml"
+    text = path.read_text(encoding="utf-8")
+    doc = yaml.safe_load(text)
+    expected_ops = {
+        "getBillingWallet",
+        "createAdRewardQrChallenge",
+        "verifyAdReward",
+        "publishMarketplacePack",
+        "purchaseMarketplacePack",
+        "getStorageQuota",
+    }
+    found_ops = set(re.findall(r"operationId:\s*(\S+)", text))
+    assert expected_ops.issubset(found_ops), (
+        f"Missing operations: {expected_ops - found_ops}"
+    )
+
+    schemas = doc.get("components", {}).get("schemas", {})
+    expected_schemas = {
+        "WalletSummary",
+        "AdRewardQrChallengeRequest",
+        "AdRewardQrChallengeResponse",
+        "AdRewardVerifyRequest",
+        "AdRewardVerifyResponse",
+        "PublishMarketplacePackRequest",
+        "MarketplacePackSummary",
+        "PurchaseMarketplacePackRequest",
+        "PurchaseMarketplacePackResponse",
+        "StorageSubscriptionStatus",
+        "StorageQuotaSummary",
+    }
+    assert expected_schemas.issubset(set(schemas.keys())), (
+        f"Missing schemas: {expected_schemas - set(schemas.keys())}"
+    )
+    wallet_props = schemas["WalletSummary"]["properties"]
+    for field in (
+        "promo_credits_minor",
+        "sub_credits_minor",
+        "paid_credits_minor",
+        "available_balance_minor",
+        "reserved_balance_minor",
+    ):
+        assert field in wallet_props, f"Missing {field} in WalletSummary"
+    assert schemas["StorageSubscriptionStatus"]["enum"] == [
+        "ACTIVE",
+        "GRACE_PERIOD",
+        "OVER_QUOTA_EVICTED",
+    ]
+    assert "grace_period_ends_at" in schemas["StorageQuotaSummary"]["properties"]
