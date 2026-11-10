@@ -137,6 +137,31 @@ def test_assertion_schema_mutations(schemas: dict[str, dict], registry: Registry
     with pytest.raises(ValidationError):
         val.validate(bad)
 
+    # Valid Shin-Honkaku narrative qualifiers
+    good_sh = copy.deepcopy(valid_payload)
+    good_sh["qualifier"] = {
+        "story_time": "1985-12-24T23:30",
+        "diegetic_layer": "INNER_WORK",
+        "hypothesis_frame": "theory:mercator:solution_2",
+        "loop_epoch": 3,
+        "episode_id": "ep_02",
+        "generation_era": "gen_2_1980s",
+        "pov_entity_id": "ent:narrator_persona",
+    }
+    val.validate(good_sh)
+
+    # Invalid diegetic_layer enum
+    bad_layer = copy.deepcopy(valid_payload)
+    bad_layer["qualifier"] = {"diegetic_layer": "UNKNOWN_LAYER"}
+    with pytest.raises(ValidationError):
+        val.validate(bad_layer)
+
+    # Negative loop_epoch
+    bad_loop = copy.deepcopy(valid_payload)
+    bad_loop["qualifier"] = {"loop_epoch": -1}
+    with pytest.raises(ValidationError):
+        val.validate(bad_loop)
+
 
 def test_assertion_transition_schema_mutations(schemas: dict[str, dict], registry: Registry) -> None:
     val = validator_for("assertion-transition", schemas, registry)
