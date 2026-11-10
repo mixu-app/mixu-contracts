@@ -37,7 +37,42 @@
     "qualifier": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Free-form qualifiers such as story_time or location; schema-validated keys arrive with the extraction RFC."
+      "description": "Free-form and schema-validated qualifiers for story_time, diegetic_layer, hypothesis_frame, loop_epoch, episode_id, generation_era, and pov_entity_id.",
+      "properties": {
+        "story_time": {
+          "type": "string",
+          "minLength": 1
+        },
+        "diegetic_layer": {
+          "type": "string",
+          "enum": [
+            "OUTER_REALITY",
+            "INNER_WORK",
+            "META_FRAME",
+            "FOLKLORE_REFERENCE"
+          ]
+        },
+        "hypothesis_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "loop_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation_era": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pov_entity_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "attribution": {
       "type": "object",
