@@ -187,7 +187,8 @@ paths:
       description: |
         Generates a short-lived presigned S3 upload URL with a SHA-256 checksum constraint
         and maximum size limit. The client uploads the book file directly to object storage.
-        Returns `INVALID_REQUEST` on invalid input or `STORAGE_QUOTA_EXCEEDED` if quota is full.
+        Returns `INVALID_REQUEST` on invalid input, `FILE_SIZE_LIMIT_EXCEEDED` if the file
+        exceeds the user's `max_file_size_bytes` limit, or `STORAGE_QUOTA_EXCEEDED` if quota is full.
       tags: [uploads]
       requestBody:
         required: true
@@ -418,9 +419,9 @@ paths:
       summary: Verify rewarded ad completion and grant promo credits
       description: |
         Server-side verification callback (`POST /v1/billing/ad-rewards/verify`) granting
-        `+300 minor_units` (`3 promo_credits`) per verified ad idempotently, subject to a daily cap
-        of `3000 minor_units` (`30 Credits/day`). Returns `RATE_LIMITED` when the daily ad reward cap
-        is exceeded or `INVALID_REQUEST` when the signature is invalid.
+        `+500 minor_units` (`5 promo_credits`, Option B) per verified ad idempotently, subject to a
+        daily cap of `3000 minor_units` (`30 Credits/day`). Returns `RATE_LIMITED` when the daily ad
+        reward cap is exceeded or `INVALID_REQUEST` when the signature is invalid.
       tags: [billing]
       requestBody:
         required: true
@@ -537,6 +538,131 @@ paths:
                 $ref: "#/components/schemas/StorageQuotaSummary"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /storage/check-in:
+    post:
+      operationId: checkInStorage
+      summary: Record daily storage progression check-in
+      description: |
+        Records an idempotent daily check-in toward the 5-level cloud storage progression (`LV1`–`LV5`)
+        and returns whether the check-in was newly recorded, whether it triggered a level-up, and
+        the updated `StorageQuotaSummary`.
+      tags: [storage]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageCheckInRequest"
+      responses:
+        "200":
+          description: Daily check-in processed and current storage progression summary returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageCheckInResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /storage/check-in/makeup:
+    post:
+      operationId: makeupStorageCheckIn
+      summary: Verify rewarded ad to make up a missed storage check-in
+      description: |
+        Server-side verification callback that grants a retroactive check-in for `target_day_key`
+        after verifying a rewarded ad or cross-device QR challenge, subject to a monthly cap of `5`
+        makeups. Returns `INVALID_REQUEST` on an invalid or non-missed `target_day_key` (`400`),
+        `FORBIDDEN` on an invalid SSV signature (`403`), or `RATE_LIMITED` when the monthly makeup
+        cap (`5`) is exceeded (`429`).
+      tags: [storage]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MakeupCheckInRequest"
+      responses:
+        "200":
+          description: Retroactive check-in granted and updated storage progression summary returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageCheckInResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /storage/objects/{uploadId}/download-intent:
+    post:
+      operationId: createDownloadIntent
+      summary: Request presigned object download URL within egress quotas
+      description: |
+        Issues a short-lived presigned download URL for a stored object (`uploadId`) owned by the
+        authenticated user after checking daily and monthly download egress quotas. Returns
+        `DAILY_DOWNLOAD_QUOTA_EXCEEDED` (`429`) when the daily or monthly download quota is exceeded.
+      tags: [storage]
+      parameters:
+        - name: uploadId
+          in: path
+          required: true
+          description: Unique identifier of the stored upload object.
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadIntentRequest"
+      responses:
+        "200":
+          description: Presigned download URL and remaining daily/monthly egress quotas issued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadIntentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+  /storage/download-boost/verify:
+    post:
+      operationId: verifyDownloadAdBoost
+      summary: Verify rewarded ad completion and grant daily download egress boost
+      description: |
+        Server-side verification callback that idempotently grants a daily download egress boost
+        after verifying a rewarded ad or cross-device QR challenge. Returns `RATE_LIMITED` (`429`)
+        when `daily_ad_boosts_cap` is exceeded or `INVALID_REQUEST` (`400`) on an invalid signature.
+      tags: [storage]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadAdBoostVerifyRequest"
+      responses:
+        "200":
+          description: Download egress boost verified and applied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadAdBoostVerifyResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 components:
   securitySchemes:
     bearerAuth:
@@ -679,7 +805,7 @@ components:
           description: Hex-encoded SHA-256 digest of the file contents.
         purpose:
           type: string
-          enum: [graph_build, edition_validation]
+          enum: [graph_build, edition_validation, bookshelf_backup]
           description: Intended processing workflow for the uploaded file.
       required: [filename, content_type, size_bytes, sha256, purpose]
     UploadIntentResponse:
@@ -982,7 +1108,7 @@ components:
         reward_minor:
           type: integer
           minimum: 1
-          description: Promotional credits in minor units (`300 minor_units` = `3 promo_credits`) granted upon completion.
+          description: Promotional credits in minor units (`500 minor_units` = `5 promo_credits`, Option B) granted upon completion.
       required: [challenge_id, qr_payload, expires_at, reward_minor]
     AdRewardVerifyRequest:
       type: object
@@ -1007,7 +1133,7 @@ components:
         granted_minor:
           type: integer
           minimum: 0
-          description: Promotional credit amount granted in minor units (`300` on first verification, `0` on duplicate).
+          description: Promotional credit amount granted in minor units (`500` on first verification, `0` on duplicate).
         daily_rewarded_minor:
           type: integer
           minimum: 0
@@ -1140,6 +1266,10 @@ components:
           expires_at,
           manifest,
         ]
+    StorageLevel:
+      type: string
+      enum: [LV1, LV2, LV3, LV4, LV5]
+      description: Five-level cloud storage progression tier (`LV1` through `LV5`).
     StorageSubscriptionStatus:
       type: string
       enum: [ACTIVE, GRACE_PERIOD, OVER_QUOTA_EVICTED]
@@ -1147,7 +1277,7 @@ components:
     StorageQuotaSummary:
       type: object
       additionalProperties: false
-      description: Cloud storage quota and 7-day subscription grace period summary (ADR-030).
+      description: Cloud storage quota, 5-level progression, egress limits, and 7-day subscription grace period summary (ADR-030).
       properties:
         user_id:
           type: string
@@ -1163,7 +1293,236 @@ components:
           type: string
           format: date-time
           description: ISO 8601 timestamp when the 7-day grace period ends if `subscription_status` is `GRACE_PERIOD`.
+        storage_level:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Current 5-level storage progression tier (`1` through `5`).
+        base_quota_bytes:
+          type: integer
+          minimum: 0
+          description: Base cloud storage quota in bytes unlocked by the current `storage_level`.
+        subscription_bonus_bytes:
+          type: integer
+          minimum: 0
+          description: Additional cloud storage quota in bytes granted by an active subscription plan.
+        max_file_size_bytes:
+          type: integer
+          minimum: 1
+          description: Maximum single upload file size in bytes allowed for the current storage level/plan.
+        daily_download_quota_bytes:
+          type: integer
+          minimum: 0
+          description: Daily cloud download egress allowance in bytes before ad boosts.
+        daily_download_used_bytes:
+          type: integer
+          minimum: 0
+          description: Download egress bytes consumed in the current day key.
+        daily_download_ad_boost_bytes:
+          type: integer
+          minimum: 0
+          description: Additional daily download egress bytes unlocked today via rewarded ad boosts.
+        daily_ad_boosts_used:
+          type: integer
+          minimum: 0
+          description: Number of download egress ad boosts used in the current day key.
+        daily_ad_boosts_cap:
+          type: integer
+          minimum: 1
+          description: Maximum number of download egress ad boosts allowed per day.
+        monthly_download_used_bytes:
+          type: integer
+          minimum: 0
+          description: Cumulative download egress bytes consumed in the current month key.
+        monthly_download_cap_bytes:
+          type: integer
+          minimum: 0
+          description: Monthly download egress hard cap in bytes.
+        checkin_days:
+          type: integer
+          minimum: 0
+          description: Total cumulative check-in days recorded for storage progression.
+        checkin_streak:
+          type: integer
+          minimum: 0
+          description: Current consecutive check-in day streak.
+        checked_in_today:
+          type: boolean
+          description: Whether a check-in has already been recorded for today.
+        monthly_makeup_used:
+          type: integer
+          minimum: 0
+          description: Number of retroactive check-in makeups used in the current month.
+        monthly_makeup_cap:
+          type: integer
+          minimum: 1
+          description: Maximum retroactive check-in makeups allowed per month (`5`).
+        reading_minutes:
+          type: integer
+          minimum: 0
+          description: Cumulative reading minutes contributing to storage progression.
+        chapters_read:
+          type: integer
+          minimum: 0
+          description: Cumulative chapters read contributing to storage progression.
+        graph_downloads:
+          type: integer
+          minimum: 0
+          description: Cumulative graph pack downloads contributing to storage progression.
+        ai_queries:
+          type: integer
+          minimum: 0
+          description: Cumulative AI queries contributing to storage progression.
+        completed_graph_builds:
+          type: integer
+          minimum: 0
+          description: Cumulative completed graph builds contributing to storage progression.
+        active_plan_id:
+          type: [string, "null"]
+          description: Identifier of the user's active subscription plan, or `null` when on the free tier.
       required: [user_id, quota_limit_bytes, used_bytes, subscription_status]
+    StorageCheckInRequest:
+      type: object
+      additionalProperties: false
+      description: Optional client context for recording a daily storage progression check-in.
+      properties:
+        day_key:
+          type: string
+          description: Optional client calendar day key (`YYYY-MM-DD`). Defaults to server UTC day if omitted.
+        device_id:
+          type: string
+          description: Optional client device identifier recording the check-in.
+    StorageCheckInResponse:
+      type: object
+      additionalProperties: false
+      description: Outcome of a daily or retroactive makeup check-in along with updated storage progression state.
+      properties:
+        already_checked_in:
+          type: boolean
+          description: True if the target day had already been checked in prior to this request.
+        newly_leveled_up:
+          type: boolean
+          description: True if this check-in triggered an immediate storage level advancement.
+        quota_summary:
+          $ref: "#/components/schemas/StorageQuotaSummary"
+      required: [already_checked_in, newly_leveled_up, quota_summary]
+    MakeupCheckInRequest:
+      type: object
+      additionalProperties: false
+      description: Server-side verification payload to make up a missed storage check-in via rewarded ad.
+      properties:
+        target_day_key:
+          type: string
+          description: Missed calendar day key (`YYYY-MM-DD`) to retroactively check in.
+        challenge_or_ad_id:
+          type: string
+          description: E-Ink `challenge_id` or ad network transaction identifier for idempotent verification.
+        signature:
+          type: string
+          description: HMAC verification signature proving rewarded ad completion.
+      required: [target_day_key, challenge_or_ad_id, signature]
+    DownloadIntentRequest:
+      type: object
+      additionalProperties: false
+      description: Optional calendar bucket overrides when requesting a storage object download intent.
+      properties:
+        day_key:
+          type: string
+          description: Optional calendar day key (`YYYY-MM-DD`) for daily egress accounting.
+        month_key:
+          type: string
+          description: Optional calendar month key (`YYYY-MM`) for monthly egress accounting.
+    DownloadIntentResponse:
+      type: object
+      additionalProperties: false
+      description: Presigned download URL and remaining daily/monthly egress allowances for a stored object.
+      properties:
+        upload_id:
+          type: string
+          description: Unique identifier of the stored upload object.
+        download_url:
+          type: string
+          description: Short-lived presigned URL. Treat as a bearer capability; do not log or share it.
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the presigned download URL expires.
+        size_bytes:
+          type: integer
+          minimum: 1
+          description: Object size in bytes counted against daily and monthly download quotas.
+        sha256:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+          description: Hex-encoded SHA-256 digest of the stored object.
+        daily_download_remaining_bytes:
+          type: integer
+          minimum: 0
+          description: Remaining daily download egress allowance in bytes after accounting for this intent.
+        monthly_download_remaining_bytes:
+          type: integer
+          minimum: 0
+          description: Remaining monthly download egress allowance in bytes after accounting for this intent.
+      required:
+        [
+          upload_id,
+          download_url,
+          expires_at,
+          size_bytes,
+          sha256,
+          daily_download_remaining_bytes,
+          monthly_download_remaining_bytes,
+        ]
+    DownloadAdBoostVerifyRequest:
+      type: object
+      additionalProperties: false
+      description: Server-side verification payload to grant a daily download egress ad boost.
+      properties:
+        challenge_or_ad_id:
+          type: string
+          description: E-Ink `challenge_id` or ad network transaction identifier for idempotent boost verification.
+        signature:
+          type: string
+          description: HMAC verification signature proving rewarded ad completion.
+        day_key:
+          type: string
+          description: Optional calendar day key (`YYYY-MM-DD`) for daily boost accounting.
+      required: [challenge_or_ad_id, signature]
+    DownloadAdBoostVerifyResponse:
+      type: object
+      additionalProperties: false
+      description: Result of verifying a download egress ad boost and updated storage quota state.
+      properties:
+        challenge_or_ad_id:
+          type: string
+          description: Verified challenge or ad transaction identifier.
+        granted_boost_bytes:
+          type: integer
+          minimum: 0
+          description: Download egress bytes granted on this request (`0` on duplicate verification).
+        daily_download_ad_boost_bytes:
+          type: integer
+          minimum: 0
+          description: Cumulative daily download egress boost bytes available today.
+        daily_ad_boosts_used:
+          type: integer
+          minimum: 0
+          description: Number of download egress ad boosts used today.
+        daily_ad_boosts_cap:
+          type: integer
+          minimum: 1
+          description: Maximum number of download egress ad boosts allowed per day.
+        quota_summary:
+          $ref: "#/components/schemas/StorageQuotaSummary"
+      required:
+        [
+          challenge_or_ad_id,
+          granted_boost_bytes,
+          daily_download_ad_boost_bytes,
+          daily_ad_boosts_used,
+          daily_ad_boosts_cap,
+          quota_summary,
+        ]
     Error:
       $ref: "./error.schema.json"
   responses:
@@ -1204,7 +1563,7 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
     TooManyRequests:
-      description: Rate limit or daily ad reward cap exceeded.
+      description: Rate limit, daily ad reward cap, or download egress quota exceeded.
       content:
         application/json:
           schema:
