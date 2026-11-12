@@ -810,3 +810,186 @@ def test_rule_openapi_billing_marketplace_and_storage_contracts_defined() -> Non
         "OVER_QUOTA_EVICTED",
     ]
     assert "grace_period_ends_at" in schemas["StorageQuotaSummary"]["properties"]
+
+
+def test_rule_error_schema_includes_storage_file_size_and_egress_codes(
+    schemas: dict[str, dict],
+    registry: Registry,
+    baseline_samples: dict[str, dict],
+) -> None:
+    """Rule protected: error.schema.json must include FILE_SIZE_LIMIT_EXCEEDED and DAILY_DOWNLOAD_QUOTA_EXCEEDED."""
+    schema_id = "https://schemas.mixu.app/api/v1/error.schema.json"
+    schema = schemas[schema_id]
+    code_enum = set(schema["properties"]["code"]["enum"])
+    for code in ("FILE_SIZE_LIMIT_EXCEEDED", "DAILY_DOWNLOAD_QUOTA_EXCEEDED"):
+        assert code in code_enum, f"Missing error code {code} in error.schema.json"
+        payload = copy.deepcopy(baseline_samples[schema_id])
+        payload["code"] = code
+        Draft202012Validator(schema, registry=registry).validate(payload)
+
+
+def test_rule_openapi_storage_levels_and_egress_contracts_defined() -> None:
+    """Rule protected: api/openapi.yaml must declare 5-level storage progression, check-in/makeup, download-intent, and ad-boost contracts."""
+    path = REPO_ROOT / "api" / "openapi.yaml"
+    text = path.read_text(encoding="utf-8")
+    doc = yaml.safe_load(text)
+
+    expected_ops = {
+        "checkInStorage",
+        "makeupStorageCheckIn",
+        "createDownloadIntent",
+        "verifyDownloadAdBoost",
+    }
+    found_ops = set(re.findall(r"operationId:\s*(\S+)", text))
+    assert expected_ops.issubset(found_ops), (
+        f"Missing operations: {expected_ops - found_ops}"
+    )
+
+    paths = doc.get("paths", {})
+    assert paths["/storage/check-in"]["post"]["operationId"] == "checkInStorage"
+    assert (
+        paths["/storage/check-in/makeup"]["post"]["operationId"]
+        == "makeupStorageCheckIn"
+    )
+    assert (
+        paths["/storage/objects/{uploadId}/download-intent"]["post"]["operationId"]
+        == "createDownloadIntent"
+    )
+    assert (
+        "429"
+        in paths["/storage/objects/{uploadId}/download-intent"]["post"]["responses"]
+    )
+    assert (
+        paths["/storage/download-boost/verify"]["post"]["operationId"]
+        == "verifyDownloadAdBoost"
+    )
+
+    schemas = doc.get("components", {}).get("schemas", {})
+    expected_schemas = {
+        "StorageLevel",
+        "StorageCheckInRequest",
+        "StorageCheckInResponse",
+        "MakeupCheckInRequest",
+        "DownloadIntentRequest",
+        "DownloadIntentResponse",
+        "DownloadAdBoostVerifyRequest",
+        "DownloadAdBoostVerifyResponse",
+    }
+    assert expected_schemas.issubset(set(schemas.keys())), (
+        f"Missing schemas: {expected_schemas - set(schemas.keys())}"
+    )
+    for name in expected_schemas - {"StorageLevel"}:
+        assert schemas[name].get("additionalProperties") is False, (
+            f"{name} must set additionalProperties: false"
+        )
+
+    assert schemas["StorageLevel"]["enum"] == ["LV1", "LV2", "LV3", "LV4", "LV5"]
+    assert schemas["UploadIntentRequest"]["properties"]["purpose"]["enum"] == [
+        "graph_build",
+        "edition_validation",
+        "bookshelf_backup",
+    ]
+
+    quota_schema = schemas["StorageQuotaSummary"]
+    assert quota_schema["required"] == [
+        "user_id",
+        "quota_limit_bytes",
+        "used_bytes",
+        "subscription_status",
+    ]
+    quota_props = quota_schema["properties"]
+    expected_quota_props = {
+        "storage_level",
+        "base_quota_bytes",
+        "subscription_bonus_bytes",
+        "max_file_size_bytes",
+        "daily_download_quota_bytes",
+        "daily_download_used_bytes",
+        "daily_download_ad_boost_bytes",
+        "daily_ad_boosts_used",
+        "daily_ad_boosts_cap",
+        "monthly_download_used_bytes",
+        "monthly_download_cap_bytes",
+        "checkin_days",
+        "checkin_streak",
+        "checked_in_today",
+        "monthly_makeup_used",
+        "monthly_makeup_cap",
+        "reading_minutes",
+        "chapters_read",
+        "graph_downloads",
+        "ai_queries",
+        "completed_graph_builds",
+        "active_plan_id",
+    }
+    assert expected_quota_props.issubset(set(quota_props.keys())), (
+        f"Missing StorageQuotaSummary properties: {expected_quota_props - set(quota_props.keys())}"
+    )
+    assert quota_props["storage_level"]["type"] == "integer"
+    assert quota_props["storage_level"]["minimum"] == 1
+    assert quota_props["storage_level"]["maximum"] == 5
+    assert quota_props["checked_in_today"]["type"] == "boolean"
+    assert quota_props["active_plan_id"]["type"] == ["string", "null"]
+
+    assert set(schemas["StorageCheckInResponse"]["required"]) == {
+        "already_checked_in",
+        "newly_leveled_up",
+        "quota_summary",
+    }
+    assert set(schemas["MakeupCheckInRequest"]["required"]) == {
+        "target_day_key",
+        "challenge_or_ad_id",
+        "signature",
+    }
+    assert set(schemas["DownloadIntentResponse"]["required"]) == {
+        "upload_id",
+        "download_url",
+        "expires_at",
+        "size_bytes",
+        "sha256",
+        "daily_download_remaining_bytes",
+        "monthly_download_remaining_bytes",
+    }
+    assert set(schemas["DownloadAdBoostVerifyRequest"]["required"]) == {
+        "challenge_or_ad_id",
+        "signature",
+    }
+    assert set(schemas["DownloadAdBoostVerifyResponse"]["required"]) == {
+        "challenge_or_ad_id",
+        "granted_boost_bytes",
+        "daily_download_ad_boost_bytes",
+        "daily_ad_boosts_used",
+        "daily_ad_boosts_cap",
+        "quota_summary",
+    }
+
+    verify_ad_desc = paths["/billing/ad-rewards/verify"]["post"]["description"]
+    assert "+500 minor_units" in verify_ad_desc
+    assert "5 promo_credits" in verify_ad_desc
+    assert "3000 minor_units" in verify_ad_desc
+
+
+def test_rule_openapi_storage_egress_broken_ref_and_duplicate_op_caught(
+    isolated_contracts_tree: Path,
+    schemas: dict[str, dict],
+) -> None:
+    """Rule protected: Duplicate operationIds and broken $ref pointers in storage egress endpoints are caught."""
+    base_uri, api_base, _ = load_config()
+    api_yaml = isolated_contracts_tree / "api" / "openapi.yaml"
+    text = api_yaml.read_text(encoding="utf-8")
+
+    mutated = text.replace(
+        "operationId: makeupStorageCheckIn", "operationId: checkInStorage"
+    )
+    mutated = mutated.replace(
+        "#/components/schemas/DownloadIntentResponse",
+        "#/components/schemas/NonExistentDownloadIntentResponse",
+    )
+    api_yaml.write_text(mutated, encoding="utf-8")
+
+    problems = val_mod.check_openapi(schemas, base_uri, api_base)
+    assert "api/openapi.yaml: duplicate operationId checkInStorage" in problems
+    assert any(
+        "unresolved pointer #/components/schemas/NonExistentDownloadIntentResponse" in p
+        for p in problems
+    )
