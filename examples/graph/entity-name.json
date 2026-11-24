@@ -3,6 +3,7 @@
   "entity_id": "e_ishida",
   "display_text": "Mr. Ishida",
   "first_reveal": 1,
+  "reveal_char_end": 128,
   "name_kind": "CANONICAL",
   "evidence_anchor_id": "ev_register_entry"
 }

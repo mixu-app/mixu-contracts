@@ -22,6 +22,11 @@
       "type": "integer",
       "minimum": 0
     },
+    "reveal_char_end": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Right-endpoint character offset within the first_reveal window at or after which this name or alias becomes visible."
+    },
     "name_kind": {
       "type": "string",
       "enum": [

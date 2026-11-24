@@ -32,6 +32,29 @@
       "type": "integer",
       "minimum": 0
     },
+    "reveal_char_end": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Right-endpoint character offset within the first_reveal window at or after which this identity link becomes visible."
+    },
+    "epistemic_status": {
+      "type": "string",
+      "enum": [
+        "OBSERVED",
+        "CLAIMED",
+        "INFERRED",
+        "CORROBORATED",
+        "CONTRADICTED",
+        "RETRACTED",
+        "UNRESOLVED"
+      ],
+      "description": "Epistemic certainty of the identity link. Only OBSERVED, unframed links collapse DSU clusters; omitted defaults to OBSERVED for v1 compatibility."
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional hypothesis or narrative frame identifier scoping this link; framed links remain uncollapsed across canonical projection views."
+    },
     "evidence_anchor_id": {
       "type": "string",
       "minLength": 1

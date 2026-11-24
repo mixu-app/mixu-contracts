@@ -103,6 +103,11 @@
       "type": "integer",
       "minimum": 0
     },
+    "reveal_char_end": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Right-endpoint character offset within the first_reveal window, bounded below by the maximum end offset of supporting evidence spans in that window."
+    },
     "evidence_anchor_id": {
       "type": "string",
       "minLength": 1

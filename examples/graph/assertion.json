@@ -10,6 +10,7 @@
     "speaker_id": "e_keeper"
   },
   "first_reveal": 2,
+  "reveal_char_end": 264,
   "evidence_anchor_id": "ev_keeper_testimony",
   "epistemic_status": "CLAIMED",
   "extraction_confidence": 0.94
