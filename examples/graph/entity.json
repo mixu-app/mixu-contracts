@@ -2,6 +2,7 @@
   "entity_id": "e_ishida",
   "entity_type": "PERSON",
   "first_reveal": 1,
+  "reveal_char_end": 128,
   "canonical_name_id": "n_ishida",
   "notes": "Primary suspect identified in the guesthouse registry."
 }

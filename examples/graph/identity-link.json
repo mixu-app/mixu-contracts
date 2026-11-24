@@ -6,5 +6,7 @@
   ],
   "kind": "CONFIRMED",
   "first_reveal": 5,
+  "reveal_char_end": 518,
+  "epistemic_status": "OBSERVED",
   "evidence_anchor_id": "ev_coat_recovered"
 }

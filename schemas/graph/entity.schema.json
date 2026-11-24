@@ -24,6 +24,11 @@
       "type": "integer",
       "minimum": 0
     },
+    "reveal_char_end": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Right-endpoint character offset within the first_reveal window at or after which the entity becomes visible."
+    },
     "canonical_name_id": {
       "type": "string",
       "description": "Name used for display; must itself be revealed at or before the view ordinal."

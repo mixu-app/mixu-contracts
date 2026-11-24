@@ -102,11 +102,41 @@ def test_entity_schema_mutations(schemas: dict[str, dict], registry: Registry) -
     with pytest.raises(ValidationError):
         val.validate(bad)
 
+    # Optional reveal_char_end backward compatibility + negative guard
+    compat = copy.deepcopy(valid_payload)
+    compat.pop("reveal_char_end", None)
+    val.validate(compat)
+
+    bad = copy.deepcopy(valid_payload)
+    bad["reveal_char_end"] = -1
+    with pytest.raises(ValidationError):
+        val.validate(bad)
+
     # Injected unknown field
     bad = copy.deepcopy(valid_payload)
     bad["unexpected_field"] = "value"
     with pytest.raises(ValidationError):
         val.validate(bad)
+
+
+def test_entity_name_schema_mutations(schemas: dict[str, dict], registry: Registry) -> None:
+    val = validator_for("entity-name", schemas, registry)
+    valid_payload = json.loads((GRAPH_EXAMPLES_DIR / "entity-name.json").read_text(encoding="utf-8"))
+
+    # Optional reveal_char_end backward compatibility and boundary values
+    compat = copy.deepcopy(valid_payload)
+    compat.pop("reveal_char_end", None)
+    val.validate(compat)
+
+    zero_end = copy.deepcopy(valid_payload)
+    zero_end["reveal_char_end"] = 0
+    val.validate(zero_end)
+
+    for bad_end in (-1, "10"):
+        bad = copy.deepcopy(valid_payload)
+        bad["reveal_char_end"] = bad_end
+        with pytest.raises(ValidationError):
+            val.validate(bad)
 
 
 def test_assertion_schema_mutations(schemas: dict[str, dict], registry: Registry) -> None:
@@ -162,6 +192,16 @@ def test_assertion_schema_mutations(schemas: dict[str, dict], registry: Registry
     with pytest.raises(ValidationError):
         val.validate(bad_loop)
 
+    # Optional reveal_char_end backward compatibility + negative guard
+    compat = copy.deepcopy(valid_payload)
+    compat.pop("reveal_char_end", None)
+    val.validate(compat)
+
+    bad_end = copy.deepcopy(valid_payload)
+    bad_end["reveal_char_end"] = -1
+    with pytest.raises(ValidationError):
+        val.validate(bad_end)
+
 
 def test_assertion_transition_schema_mutations(schemas: dict[str, dict], registry: Registry) -> None:
     val = validator_for("assertion-transition", schemas, registry)
@@ -174,6 +214,15 @@ def test_assertion_transition_schema_mutations(schemas: dict[str, dict], registr
 
     bad = copy.deepcopy(valid_payload)
     bad["reveal_ordinal"] = -5
+    with pytest.raises(ValidationError):
+        val.validate(bad)
+
+    compat = copy.deepcopy(valid_payload)
+    compat.pop("reveal_char_end", None)
+    val.validate(compat)
+
+    bad = copy.deepcopy(valid_payload)
+    bad["reveal_char_end"] = -1
     with pytest.raises(ValidationError):
         val.validate(bad)
 
@@ -213,5 +262,34 @@ def test_identity_link_schema_mutations(schemas: dict[str, dict], registry: Regi
 
     bad = copy.deepcopy(valid_payload)
     bad["entity_ids"] = ["e_ishida", "e_grey", "e_third"]
+    with pytest.raises(ValidationError):
+        val.validate(bad)
+
+    # Optional reveal_char_end, epistemic_status, frame_id backward compatibility
+    compat = copy.deepcopy(valid_payload)
+    compat.pop("reveal_char_end", None)
+    compat.pop("epistemic_status", None)
+    compat.pop("frame_id", None)
+    val.validate(compat)
+
+    # Valid framed hypothesis link
+    framed = copy.deepcopy(valid_payload)
+    framed["epistemic_status"] = "CLAIMED"
+    framed["frame_id"] = "hyp:theory_a"
+    framed["reveal_char_end"] = 518
+    val.validate(framed)
+
+    bad = copy.deepcopy(valid_payload)
+    bad["epistemic_status"] = "CERTAIN"
+    with pytest.raises(ValidationError):
+        val.validate(bad)
+
+    bad = copy.deepcopy(valid_payload)
+    bad["frame_id"] = ""
+    with pytest.raises(ValidationError):
+        val.validate(bad)
+
+    bad = copy.deepcopy(valid_payload)
+    bad["reveal_char_end"] = -1
     with pytest.raises(ValidationError):
         val.validate(bad)

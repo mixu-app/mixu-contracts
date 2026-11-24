@@ -18,6 +18,11 @@
       "type": "integer",
       "minimum": 0
     },
+    "reveal_char_end": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Right-endpoint character offset within the reveal_ordinal window at or after which this status transition takes effect."
+    },
     "status": {
       "type": "string",
       "enum": [

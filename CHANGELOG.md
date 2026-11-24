@@ -7,6 +7,10 @@ are independent of the repository version.
 
 ### Added
 
+- Additive v1 optional fields on graph schemas (`reveal_char_end` on `entity`,
+  `entity-name`, `assertion`, `assertion-transition`, and `identity-link`, plus
+  `epistemic_status` and `frame_id` on `identity-link`) aligned with ADR-031 and
+  ADR-042.
 - Frozen graph schema v1 with realistic examples in `examples/graph/` (entity,
   entity-name, reveal-anchor, evidence-anchor, event, assertion,
   assertion-transition, identity-link, user-overlay), field optionality
