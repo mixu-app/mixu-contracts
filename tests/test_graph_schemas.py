@@ -293,3 +293,68 @@ def test_identity_link_schema_mutations(schemas: dict[str, dict], registry: Regi
     bad["reveal_char_end"] = -1
     with pytest.raises(ValidationError):
         val.validate(bad)
+
+
+def test_adr043_entity_and_assertion_schema_extensions(
+    schemas: dict[str, dict],
+    registry: Registry,
+) -> None:
+    entity_val = validator_for("entity", schemas, registry)
+    base_entity = json.loads((GRAPH_EXAMPLES_DIR / "entity.json").read_text(encoding="utf-8"))
+    for etype in ("TEXT_WORK", "MOTIF"):
+        payload = copy.deepcopy(base_entity)
+        payload["entity_type"] = etype
+        entity_val.validate(payload)
+
+    assertion_val = validator_for("assertion", schemas, registry)
+    base_assertion = json.loads((GRAPH_EXAMPLES_DIR / "assertion.json").read_text(encoding="utf-8"))
+    ref_payload = copy.deepcopy(base_assertion)
+    ref_payload["qualifier"] = {
+        "diegetic_layer": "REFERENCE_TEXT",
+        "doc_id": "doc:chronicle_01",
+        "story_time": "1986-03-01",
+        "hypothesis_frame": "theory:alibi_a",
+        "loop_epoch": 1,
+        "storyline": "island_strand",
+    }
+    assertion_val.validate(ref_payload)
+
+    for bad_key in ("doc_id", "storyline"):
+        bad_q = copy.deepcopy(ref_payload)
+        bad_q["qualifier"][bad_key] = ""
+        with pytest.raises(ValidationError):
+            assertion_val.validate(bad_q)
+
+    link_val = validator_for("identity-link", schemas, registry)
+    base_link = json.loads((GRAPH_EXAMPLES_DIR / "identity-link.json").read_text(encoding="utf-8"))
+    hyp_link = copy.deepcopy(base_link)
+    hyp_link["epistemic_status"] = "CLAIMED"
+    hyp_link["hypothesis_frame"] = "hyp:theory_b"
+    link_val.validate(hyp_link)
+
+    bad_link = copy.deepcopy(hyp_link)
+    bad_link["hypothesis_frame"] = ""
+    with pytest.raises(ValidationError):
+        link_val.validate(bad_link)
+
+    manifest_val = validator_for("graph-pack-manifest", schemas, registry)
+    base_manifest = json.loads(
+        (REPO_ROOT / "examples" / "graph-pack-manifest.json").read_text(encoding="utf-8")
+    )
+    multipart_manifest = copy.deepcopy(base_manifest)
+    multipart_manifest["series_id"] = "series:detective_cycle"
+    multipart_manifest["part_index"] = 2
+    multipart_manifest["total_parts"] = 3
+    multipart_manifest["body_winnow_fingerprint"] = "winnow-v1:0123456789abcdef"
+    manifest_val.validate(multipart_manifest)
+
+    for bad_field, bad_val in (
+        ("part_index", 0),
+        ("total_parts", 0),
+        ("series_id", ""),
+        ("body_winnow_fingerprint", ""),
+    ):
+        bad_manifest = copy.deepcopy(multipart_manifest)
+        bad_manifest[bad_field] = bad_val
+        with pytest.raises(ValidationError):
+            manifest_val.validate(bad_manifest)

@@ -50,10 +50,15 @@
       ],
       "description": "Epistemic certainty of the identity link. Only OBSERVED, unframed links collapse DSU clusters; omitted defaults to OBSERVED for v1 compatibility."
     },
+    "hypothesis_frame": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional hypothesis or narrative frame identifier scoping this link; supersedes legacy frame_id. Framed links remain uncollapsed across canonical projection views."
+    },
     "frame_id": {
       "type": "string",
       "minLength": 1,
-      "description": "Optional hypothesis or narrative frame identifier scoping this link; framed links remain uncollapsed across canonical projection views."
+      "description": "Legacy alias for hypothesis_frame retained for v1 compatibility; framed links remain uncollapsed across canonical projection views."
     },
     "evidence_anchor_id": {
       "type": "string",

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.mixu.app/graph/v1/entity.schema.json",
   "title": "Entity",
-  "description": "A person, persona, location, organization or object. 'first_reveal' is the earliest reveal ordinal at which the entity may be shown at all.",
+  "description": "A person, persona, location, organization, object, text work, or narrative motif. 'first_reveal' is the earliest reveal ordinal at which the entity may be shown at all.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -17,7 +17,9 @@
         "PERSONA",
         "LOCATION",
         "ORGANIZATION",
-        "OBJECT"
+        "OBJECT",
+        "TEXT_WORK",
+        "MOTIF"
       ]
     },
     "first_reveal": {
