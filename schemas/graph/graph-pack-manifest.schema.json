@@ -112,6 +112,26 @@
           "minimum": 0
         }
       }
+    },
+    "series_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional series identifier grouping independent works that share a recurring cast."
+    },
+    "part_index": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-based part number for a multi-part continuous work sharing one work_id."
+    },
+    "total_parts": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of parts in a multi-part continuous work."
+    },
+    "body_winnow_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Post-paratext Winnowing body fingerprint for edition and omnibus sub-volume matching."
     }
   },
   "required": [

@@ -51,6 +51,21 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "part_index": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-based part number when this physical asset represents one volume of a multi-part continuous work."
+    },
+    "total_parts": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of parts in the multi-part continuous work."
+    },
+    "body_winnow_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Post-paratext Winnowing body fingerprint digest for edition and omnibus sub-volume alignment."
     }
   }
 }
